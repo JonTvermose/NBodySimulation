@@ -1,9 +1,7 @@
 package model;
 
 import java.util.ArrayList;
-import java.util.Vector;
 
-import javafx.geometry.Point2D;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.paint.Color;
 
@@ -67,20 +65,15 @@ public class BodySystem {
 			double phiv = Math.random()*Math.PI;
 			double vx   = -1*Math.signum(py)*Math.cos(thetav)*magv;
 			double vy   = Math.signum(px)*Math.sin(thetav)*magv;
-			//Orient a random 2D circular orbit
 
+			//Orient a random 2D circular orbit
 			// Should there be counterclockwise orbits?
-//			if (Math.random() <=.5) {
-//				vx=-vx;
-//				vy=-vy;
-//			} 
+			if (Math.random() <=.05) {
+				vx=-vx;
+				vy=-vy;
+			} 
 
 			double mass = Math.random()*solarmass*0.00001; //*10+1e20; 
-//			//Color the masses in green gradients by mass
-//			int red     = (int) Math.floor(mass*254/(solarmass*10+1e20));
-//			int blue   = (int) Math.floor(mass*254/(solarmass*10+1e20));
-//			int green    = 255;
-			//			Color color = new Color(red, green, blue);
 			Color color = Color.ANTIQUEWHITE;
 			bodies.add(new Body(px, py, vx, vy, mass, color));
 		}
@@ -107,32 +100,28 @@ public class BodySystem {
 			bodies.get(i).resetForce();
 			//Notice-2 loops-->N^2 complexity
 			for (int j = 0; j < bodies.size(); j++) {
-				if (i != j) bodies.get(i).addForce(bodies.get(j));
-			}
-		}
-		//Then, loop again and update the bodies using timestep dt
-		
-		bodies.get(0).resetForce(); //dont move the sun
-		for (int i = 0; i < bodies.size(); i++) { 
-			bodies.get(i).update(dt); // 1e11
-		}
-
-		// If two bodies collide then we merge them and keep the combined mass in a single item
-		for (int i = 0; i < bodies.size(); i++) {
-			for(int j = 0; j < bodies.size(); j++){
-				if(i == j)
-					continue;
-				if(collided(bodies.get(i), bodies.get(j))){ 
-					if(bodies.get(i).mass > bodies.get(j).mass){
-						bodies.get(i).addBodyMass(bodies.get(j));
-						bodies.remove(j);						
-					} else {
-						bodies.get(j).addBodyMass(bodies.get(i));
-						bodies.remove(i);	
+				if (i != j){
+					bodies.get(i).addForce(bodies.get(j));
+					// If two bodies collide then we merge them and keep the combined mass in a single item
+					if(collided(bodies.get(i), bodies.get(j))){ 
+						if(bodies.get(i).mass > bodies.get(j).mass){
+							bodies.get(i).addBodyMass(bodies.get(j));
+							bodies.remove(j);
+							j--;
+						} else {
+							bodies.get(j).addBodyMass(bodies.get(i));
+							bodies.remove(i);
+							i--;
+						}
 					}
-					j--;
 				}
 			}
+		}
+		
+		//Then, loop again and update the bodies using timestep dt
+		bodies.get(0).resetForce(); //dont move the sun
+		for (int i = 0; i < bodies.size(); i++) { 
+			bodies.get(i).update(dt);
 		}
 	}	
 	

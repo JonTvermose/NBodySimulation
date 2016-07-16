@@ -1,5 +1,6 @@
 package application;
 
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.concurrent.Task;
@@ -12,7 +13,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.paint.Color;
 import model.Body;
 import model.BodySystem;
 
@@ -29,6 +29,9 @@ public class Controller {
 
 	@FXML
 	private Button start; // Start the simulation
+
+	@FXML
+	private Button reset; // Reset the simulation
 
 	@FXML
 	private Slider speed; // Set the speed of the simulation
@@ -55,7 +58,7 @@ public class Controller {
 				dt = (double) newValue;
 			}
 		});
-		
+
 		canvas.setOnMouseClicked(new EventHandler<MouseEvent>(){
 			@Override
 			public void handle(MouseEvent event) {				
@@ -65,40 +68,65 @@ public class Controller {
 				double x2 = canvas.getWidth()/2;
 				double y2 = canvas.getHeight()/2;
 				double dist = Math.abs(Math.sqrt(Math.pow((x2-x1), 2)+Math.pow(y2-y1, 2)));
-//				System.out.println("Mouseclick at: " + x1 + ", " + y1 + " - Distance to sun: " + dist);
-				
+				//				System.out.println("Mouseclick at: " + x1 + ", " + y1 + " - Distance to sun: " + dist);
+
 				// add planet with calculated distance
-				
+
 			}
 		});
+
+		this.stopSimulation(null); // Refresh the buttons
 	}
 
 	@FXML
 	void startSimulation(ActionEvent event) {
-		// Lock input_field
-		int n;
-		try{
-			n = Integer.parseInt(this.objects.getText());    		
-		} catch (NumberFormatException e){
-			n = 0;
-		}
-		sys.resetBodies();
-
-		if(n > 1000 || n < 0){
-			n = 100;
-		}
-		sys.addRandomBodies(n);
-		// Activate button: stop
-		// Activate slider: speed ?
 		// Deactivate button: start
+		start.setDisable(true);
+		
+		// Deactivate button: Reset
+		reset.setDisable(true);
+
+		// Lock the textfield
+		objects.setDisable(true);
+
+		if(simulationThread==null){
+			// Read input_field and create bodies
+			int n;
+			try{
+				n = Integer.parseInt(this.objects.getText());    		
+			} catch (NumberFormatException e){
+				n = 0;
+			}
+			sys.resetBodies();
+
+			if(n > 1000){
+				n = 1000;
+			} else if(n < 0){
+				n = 100;
+			}
+			sys.addRandomBodies(n);
+		}
+
+		// Activate button: stop
+		stop.setDisable(false);
+
+		// Activate slider: speed
+		speed.setDisable(false);
+
 		// Begin the simulation
 		Task<Void> t = new Task<Void>(){
 			@Override 
 			public Void call() {
+				long start;
 				while(true){
+					start = System.currentTimeMillis();
 					Controller.this.updateSimulation();		
+					Controller.this.drawSimulation();
 					try {
-						Thread.sleep(50);
+						long x = 33 - (System.currentTimeMillis() - start);
+						if(x > 2){
+							Thread.sleep(x);							
+						}
 					} catch (InterruptedException e) {
 						System.err.println("Simulation stopped.");
 						break;
@@ -112,35 +140,63 @@ public class Controller {
 		System.err.println("Simulation started.");
 	}
 
+	/**
+	 * Draw the model on the canvas in a JavaFX Application Thread (Platform.runLater)
+	 */
+	protected void drawSimulation() {
+		Platform.runLater(new Runnable() {
+			@Override
+			public void run() {
+				gc.translate(-canvas.getWidth()/2, -canvas.getHeight()/2);
+				gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight()); // Clear the canvas
+				String txt = "# of bodies: " + sys.getBodies().size();
+				gc.fillText(txt, 20, 30);
+				gc.translate(canvas.getWidth()/2, canvas.getHeight()/2);
+
+				for(Body b : sys.getBodies()){
+					gc.setFill(b.color);    		
+					gc.fillOval((int) Math.round(b.rx*(canvas.getWidth()/2)/1e18)-b.diameter/2, (int) Math.round(b.ry*(canvas.getHeight()/2)/1e18)-b.diameter/2, b.diameter, b.diameter);
+				}
+			}
+		});
+	}
+
 	@FXML
 	void stopSimulation(ActionEvent event) {
 		// Stop the simulation
-		simulationThread.interrupt();
+		if(simulationThread!=null){
+			simulationThread.interrupt();			
+		}
 
-		// Unlock textfield: objects
 		// Deactivate button: Stop
-		// Activate button: Start
-		// Deactivate slider: speed ?
+		stop.setDisable(true);
 
+		// Activate button: Start
+		start.setDisable(false);
+
+		// Deactivate slider: speed
+		speed.setDisable(true);
+		
+		// Activate button: Reset
+		reset.setDisable(false);
 	}
 
 	@FXML
 	void setSimulationSpeed(ActionEvent event) {	}
 
+	@FXML
+	void resetSimulation(ActionEvent event) {
+		simulationThread = null;
+		
+		// Unlock textfield: objects
+		objects.setDisable(false);
+	}
+
+	/**
+	 * Update the model
+	 */
 	private void updateSimulation(){
 		sys.updatePositions(dt); // Update the model
-
-		gc.translate(-canvas.getWidth()/2, -canvas.getHeight()/2);
-		gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight()); // Clear the canvas
-		String txt = "# of bodies: " + sys.getBodies().size();
-		gc.fillText(txt, 20, 30);
-		gc.translate(canvas.getWidth()/2, canvas.getHeight()/2);
-
-		for(Body b : sys.getBodies()){
-			gc.setFill(b.color);    		
-			gc.fillOval((int) Math.round(b.rx*(canvas.getWidth()/2)/1e18)-b.diameter/2, (int) Math.round(b.ry*(canvas.getHeight()/2)/1e18)-b.diameter/2, b.diameter, b.diameter);
-		}
-
 	}
 
 

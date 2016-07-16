@@ -21,12 +21,13 @@
          <children>
             <Pane prefHeight="100.0" prefWidth="1200.0" style="-fx-background-color: #999999; -fx-border-color: #000000;" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
                <children>
-                  <Button fx:id="start" layoutX="209.0" layoutY="50.0" mnemonicParsing="false" onAction="#startSimulation" text="Start" />
-                  <Button fx:id="stop" layoutX="276.0" layoutY="50.0" mnemonicParsing="false" onAction="#stopSimulation" text="Stop" />
+                  <Button fx:id="start" layoutX="209.0" layoutY="50.0" mnemonicParsing="false" onAction="#startSimulation" prefWidth="60.0" text="Start" />
+                  <Button fx:id="stop" layoutX="276.0" layoutY="50.0" mnemonicParsing="false" onAction="#stopSimulation" prefWidth="60.0" text="Stop" />
                   <Slider fx:id="speed" layoutX="483.0" layoutY="56.0" onDragDone="#setSimulationSpeed" />
                   <TextField fx:id="objects" layoutX="36.0" layoutY="50.0" />
                   <Label layoutX="36.0" layoutY="27.0" text="Number of objects:" />
-                  <Label layoutX="536.0" layoutY="36.0" text="Speed" />
+                  <Label layoutX="468.0" layoutY="27.0" text="Delta Time between calculations" />
+                  <Button fx:id="reset" layoutX="346.0" layoutY="51.0" mnemonicParsing="false" onAction="#resetSimulation" prefWidth="60.0" text="Reset" />
                </children>
             </Pane>
          </children>
