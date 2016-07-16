@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.canvas.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.layout.AnchorPane?>
+
+<AnchorPane xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="application.Controller">
+   <children>
+      <AnchorPane prefHeight="900.0" prefWidth="1200.0">
+         <children>
+            <Pane prefHeight="900.0" prefWidth="1200.0" style="-fx-background-color: #000000;">
+               <children>
+                  <Canvas fx:id="canvas" height="900.0" width="1200.0" />
+               </children>
+            </Pane>
+         </children>
+      </AnchorPane>
+      <AnchorPane layoutY="900.0" prefHeight="100.0" prefWidth="1200.0">
+         <children>
+            <Pane prefHeight="100.0" prefWidth="1200.0" style="-fx-background-color: #999999; -fx-border-color: #000000;" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+               <children>
+                  <Button fx:id="start" layoutX="209.0" layoutY="50.0" mnemonicParsing="false" onAction="#startSimulation" text="Start" />
+                  <Button fx:id="stop" layoutX="276.0" layoutY="50.0" mnemonicParsing="false" onAction="#stopSimulation" text="Stop" />
+                  <Slider fx:id="speed" layoutX="483.0" layoutY="56.0" onDragDone="#setSimulationSpeed" />
+                  <TextField fx:id="objects" layoutX="36.0" layoutY="50.0" />
+                  <Label layoutX="36.0" layoutY="27.0" text="Number of objects:" />
+                  <Label layoutX="536.0" layoutY="36.0" text="Speed" />
+               </children>
+            </Pane>
+         </children>
+      </AnchorPane>
+   </children>
+</AnchorPane>
