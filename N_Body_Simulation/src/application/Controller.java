@@ -47,10 +47,10 @@ public class Controller {
 		gc.translate(canvas.getWidth()/2, canvas.getHeight()/2);
 		this.sys = new BodySystem(canvas);
 
-		dt = 1e14;
-		speed.setMax(5e14);
-		speed.setMin(5e12);
-		speed.setValue(dt);
+		dt = 1e13;
+		speed.setMax(1e14);
+		speed.setMin(1e12);
+//		speed.setValue(dt);
 		speed.valueProperty().addListener(new ChangeListener<Number>() {
 			@Override
 			public void changed(ObservableValue<? extends Number> observable,
@@ -123,8 +123,8 @@ public class Controller {
 					Controller.this.updateSimulation();		
 					Controller.this.drawSimulation();
 					try {
-						long x = 33 - (System.currentTimeMillis() - start);
-						if(x > 2){
+						long x = 5 - (System.currentTimeMillis() - start);
+						if(x > 1){
 							Thread.sleep(x);							
 						}
 					} catch (InterruptedException e) {
