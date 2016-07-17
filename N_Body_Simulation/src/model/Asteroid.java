@@ -16,8 +16,8 @@ public class Asteroid extends Body{
 	public Asteroid(double dist, double mass, Color color){
 		super(dist, mass, color);
 		
-		//Orient a random 2D circular orbit
-		if (Math.random() <=.05) {
+		//Orient a random 2D circular orbit (1% chance)
+		if (Math.random() <=.01) {
 			vx=-vx;
 			vy=-vy;
 		} 

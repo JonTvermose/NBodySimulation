@@ -79,6 +79,11 @@ public abstract class Body {
 		if (mass >= BodySystem.solarmass/10){
 			color = Color.DARKORANGE;
 			diameter = diameter/30;
+		} else if (mass > BodySystem.earthmass*5){
+			diameter = diameter/5;
+		}
+		if(this instanceof BlackHole){
+			diameter = diameter/10;
 		}
 		impacts++;
 	}

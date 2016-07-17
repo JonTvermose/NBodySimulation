@@ -19,9 +19,12 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
+import model.Asteroid;
+import model.BlackHole;
 import model.Body;
 import model.BodySystem;
 import model.Collision;
+import model.Comet;
 import model.Star;
 import sounds.MediaPlayerSupport;
 
@@ -50,7 +53,7 @@ public class Controller {
 	private double dt; // delta time between physics calculation
 	private AnimationTimer at;
 
-	private Image sun; // Gif of rotating sun
+	private Image sun, black_hole; // Gif of rotating sun
 	private MediaPlayer gameSoundPlayer, settingsSoundPlayer;
 
 	@FXML
@@ -64,6 +67,8 @@ public class Controller {
 		// Load the GIF of the sun
 		File file = new File("sun_gif3.gif");
 		sun = new Image(file.toURI().toString());
+		File file2 = new File("darkhole_gif.gif");
+		black_hole = new Image(file2.toURI().toString());
 
 		// Load the sound files
 		URL soundFile = getClass().getResource("Space_Trip.mp3");
@@ -78,7 +83,7 @@ public class Controller {
 
 		// Setup the speed/delta time slider
 		dt = 1e13;
-		speed.setMax(1e14);
+		speed.setMax(5e14);
 		speed.setMin(1e12);
 		speed.setValue(dt);
 		speed.valueProperty().addListener(new ChangeListener<Number>() {
@@ -102,7 +107,7 @@ public class Controller {
 				System.out.println("Mouseclick at: " + x1 + ", " + y1 + " - Distance to sun: " + dist);
 
 				// add planet with calculated distance
-				sys.addBody(sys.getBody(dist*0.0135e17, BodySystem.solarmass*3, Color.YELLOW, "STAR"));
+				sys.addBody(sys.getBody(dist*0.0135e17, BodySystem.solarmass, Color.BLACK, "BLACK HOLE"));
 			}
 		});
 
@@ -130,12 +135,6 @@ public class Controller {
 				n = 0;
 			}
 			sys.resetBodies();
-
-			if(n > 1000){
-				n = 1000;
-			} else if(n < 0){
-				n = 100;
-			}
 			sys.addRandomBodies(n);
 
 			// Change the music
@@ -179,16 +178,36 @@ public class Controller {
 
 					// Draw the bodies
 					for(Body b : sys.getBodies()){
-						gc.setFill(b.color);    		
-						gc.fillOval((int) Math.round(b.rx*(canvas.getWidth()/2)/1e18)-b.diameter/2, (int) Math.round(b.ry*(canvas.getHeight()/2)/1e18)-b.diameter/2, b.diameter, b.diameter);
+						if(b instanceof Comet){
+							gc.setFill(b.color); 
+							gc.setStroke(b.color);
+							gc.setLineWidth(2);
+							double x = b.rx*(canvas.getWidth()/2)/1e18-4;
+							double y = b.ry*(canvas.getHeight()/2)/1e18-4;
+							gc.fillOval(x, y, 8, 8);
+							double dist = Math.sqrt(x*x+y*y);
+							double angle = Math.atan2(y,x);
+							double tailX = dist*Math.cos(Math.toRadians(angle)); // TODO - calculate based on distance to sun (center) and angle
+							double tailY = dist*Math.sin(Math.toRadians(angle)); // TODO
+							gc.strokeLine(x+4, y+4, tailX, tailY);
+
+						} else {							
+							gc.setFill(b.color);    		
+							gc.fillOval(b.rx*(canvas.getWidth()/2)/1e18-b.diameter/2, b.ry*(canvas.getHeight()/2)/1e18-b.diameter/2, b.diameter, b.diameter);
+						}
 					}
 
 					// Draw the gravity bodies
 					for(Body b : sys.getGravityBodies()){
 						if(b instanceof Star){	
 							// Draw the sun(s)
-							gc.drawImage(sun, (int) Math.round(b.rx*(canvas.getWidth()/2)/1e18)-b.diameter/2, (int) Math.round(b.ry*(canvas.getHeight()/2)/1e18)-b.diameter/2, b.diameter, b.diameter);
-						} else {					
+							gc.drawImage(sun, b.rx*(canvas.getWidth()/2)/1e18-b.diameter/2, b.ry*(canvas.getHeight()/2)/1e18-b.diameter/2, b.diameter, b.diameter);
+						} else if (b instanceof BlackHole) {
+							gc.drawImage(black_hole, b.rx*(canvas.getWidth()/2)/1e18-b.diameter/4, b.ry*(canvas.getHeight()/2)/1e18-b.diameter/4, b.diameter/2, b.diameter/2);
+							gc.setFill(Color.BLACK);
+							gc.fillOval(b.rx*(canvas.getWidth()/2)/1e18-b.diameter/2, b.ry*(canvas.getHeight()/2)/1e18-b.diameter/2, b.diameter, b.diameter);					
+
+						} else {
 							gc.setFill(b.color);    		
 							gc.fillOval((int) Math.round(b.rx*(canvas.getWidth()/2)/1e18)-b.diameter/2, (int) Math.round(b.ry*(canvas.getHeight()/2)/1e18)-b.diameter/2, b.diameter, b.diameter);					
 						}
@@ -197,7 +216,7 @@ public class Controller {
 					// Draw the collisions
 					for(Collision b : sys.getCollisions()){
 						gc.setFill(Color.YELLOW);
-						gc.fillOval((int) Math.round(b.rx*(canvas.getWidth()/2)/1e18)-b.diameter/2, (int) Math.round(b.ry*(canvas.getHeight()/2)/1e18)-b.diameter/2, b.diameter*5, b.diameter*5);
+						gc.fillOval(b.rx*(canvas.getWidth()/2)/1e18-b.diameter/2, b.ry*(canvas.getHeight()/2)/1e18-b.diameter/2, b.diameter*5, b.diameter*5);
 					}		
 				}
 			};
