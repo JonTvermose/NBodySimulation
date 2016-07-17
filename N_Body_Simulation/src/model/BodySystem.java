@@ -32,6 +32,7 @@ public class BodySystem {
 		
 		double px = 1.47e17*3; // Earth orbit
 		double py = -1.47e17*3;
+		System.out.println(px/340);
 
 		Body earth = getBody(px, py, earthmass, Color.BLUE);
 		Body mars = getBody(px*1.524, py*1.524, earthmass*0.107, Color.RED);
@@ -90,7 +91,7 @@ public class BodySystem {
 		}
 	}
 
-	public void addBody(Body b){
+	public synchronized void addBody(Body b){
 		bodies.add(b);
 	}
 
@@ -106,7 +107,7 @@ public class BodySystem {
 		return Math.sqrt(numerator/r2);
 	}	
 
-	public void updatePositions(double dt){
+	public synchronized void updatePositions(double dt){
 		if(frame == Integer.MAX_VALUE){
 			collisions = new ArrayList<Collision>();
 			frame = 0;

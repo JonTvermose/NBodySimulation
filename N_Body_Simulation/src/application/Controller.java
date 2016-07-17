@@ -103,6 +103,7 @@ public class Controller {
 				System.out.println("Mouseclick at: " + x1 + ", " + y1 + " - Distance to sun: " + dist);
 
 				// add planet with calculated distance
+				sys.addBody(sys.getBody(dist*0.0135e17, dist*0.0135e17, BodySystem.solarmass*3, Color.YELLOW));
 
 			}
 		});
