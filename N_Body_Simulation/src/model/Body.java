@@ -29,12 +29,13 @@ public class Body {
 		if(b!=null){
 			mass += b.mass;			
 		}
-		diameter = (int) (Math.pow(((mass/BodySystem.solarmass)/3.14)*(3.0/4.0), 1.0/3.0)*50);
+		diameter = (int) (Math.pow((((mass)/BodySystem.solarmass)/3.14)*(3.0/4.0), 1.0/3.0)*1500);
 		if(diameter < 1){
 			diameter = 1;	    	
 		}
 		if (mass >= BodySystem.solarmass/10){
 			color = Color.DARKORANGE;
+			diameter = diameter/30;
 		}
 		impacts++;
 	}

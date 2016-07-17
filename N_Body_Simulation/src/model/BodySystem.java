@@ -8,34 +8,45 @@ import javafx.scene.paint.Color;
 public class BodySystem {
 
 	public static final double solarmass=1.98892e30;
+	public static final double earthmass = solarmass/333000.0;
 
 	protected static final double G = 6.673e-11;   // gravitational constant
 	
 	private double factor;
 	private Canvas canvas;
 	private ArrayList<Body> bodies;
+	private ArrayList<Collision> collisions; // Body's that has been removed in the last update due to collision with another body
+	private int frame;
 
 	public BodySystem(Canvas c){
 		this.canvas = c;
 		factor = (canvas.getWidth()/2)/1e18;
 		resetBodies();
+		frame = 0;
+		collisions = new ArrayList<Collision>();
 	}
 
 	public void resetBodies(){
 		bodies = new ArrayList<Body>();
 		Body sun = new Body(0, 0, 0, 0, solarmass, Color.DARKORANGE);
 		
-		double px = 1.47e17; // Earth orbit
-		double py = -1.47e17;
+		double px = 1.47e17*3; // Earth orbit
+		double py = -1.47e17*3;
 
-		Body earth = getBody(px, py, solarmass*0.006, Color.BLUE);
-		Body mars = getBody(px*1.524, py*1.524, solarmass*0.0006, Color.RED);
-		Body jupiter = getBody(px*4, py*4, solarmass*0.09, Color.YELLOW);
+		Body earth = getBody(px, py, earthmass, Color.BLUE);
+		Body mars = getBody(px*1.524, py*1.524, earthmass*0.107, Color.RED);
+		Body jupiter = getBody(px*5.203, py*5.203, earthmass*317.83, Color.YELLOW);
+		Body venus = getBody(px*.7233, py*.7233, earthmass*0.815, Color.CYAN);
+		Body saturn = getBody(px*9.537, py*9.537, earthmass*95.162, Color.BURLYWOOD);
+		Body mercury = getBody(px*.38709, py*.38709, earthmass*0.0553, Color.SILVER);
 		
 		bodies.add(sun);
 		bodies.add(earth);
 		bodies.add(mars);
 		bodies.add(jupiter);
+		bodies.add(venus);
+		bodies.add(saturn);
+		bodies.add(mercury);
 	}
 	
 	public Body getBody(double px, double py, double mass, Color c){
@@ -73,7 +84,7 @@ public class BodySystem {
 				vy=-vy;
 			} 
 
-			double mass = Math.random()*solarmass*0.00001; //*10+1e20; 
+			double mass = Math.random()*earthmass*0.0000001; //*10+1e20; 
 			Color color = Color.ANTIQUEWHITE;
 			bodies.add(new Body(px, py, vx, vy, mass, color));
 		}
@@ -96,6 +107,12 @@ public class BodySystem {
 	}	
 
 	public void updatePositions(double dt){
+		if(frame == Integer.MAX_VALUE){
+			collisions = new ArrayList<Collision>();
+			frame = 0;
+		}
+		frame++;
+		
 		for (int i = 0; i < bodies.size(); i++) {
 			bodies.get(i).resetForce();
 			//Notice-2 loops-->N^2 complexity
@@ -106,10 +123,12 @@ public class BodySystem {
 					if(collided(bodies.get(i), bodies.get(j))){ 
 						if(bodies.get(i).mass > bodies.get(j).mass){
 							bodies.get(i).addBodyMass(bodies.get(j));
+							collisions.add(new Collision(bodies.get(j), frame));
 							bodies.remove(j);
 							j--;
 						} else {
 							bodies.get(j).addBodyMass(bodies.get(i));
+							collisions.add(new Collision(bodies.get(i), frame));
 							bodies.remove(i);
 							i--;
 						}
@@ -136,6 +155,22 @@ public class BodySystem {
 			return true;
 		}
 		return false;
+	}
+	
+	/**
+	 * Get the current collisions in the model. Collisions are removed from the list as time moves forward
+	 * @return ArrayList of current collisions to be drawn on the GUI
+	 */
+	public ArrayList<Collision> getCollisions(){
+		ArrayList<Collision> out = new ArrayList<Collision>();
+		final int framesToShow = 50;
+		for(Collision c : collisions){
+			if(c.frame > frame - framesToShow){
+				out.add(c);
+			}
+		}
+		collisions = out;
+		return out;
 	}
 
 }
