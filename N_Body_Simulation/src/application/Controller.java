@@ -3,11 +3,9 @@ package application;
 import java.io.File;
 import java.net.URL;
 
-import javafx.animation.Timeline;
-import javafx.application.Platform;
+import javafx.animation.AnimationTimer;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
@@ -24,6 +22,7 @@ import javafx.scene.paint.Color;
 import model.Body;
 import model.BodySystem;
 import model.Collision;
+import model.Star;
 import sounds.MediaPlayerSupport;
 
 public class Controller {
@@ -44,14 +43,14 @@ public class Controller {
 	private Button reset; // Reset the simulation
 
 	@FXML
-	private Slider speed; // Set the speed of the simulation
+	private Slider speed; // Set the delta time of the simulation
 
 	private GraphicsContext gc;
 	private BodySystem sys;
-	private Thread simulationThread;
-	private double dt;
-	
-	private Image sun;
+	private double dt; // delta time between physics calculation
+	private AnimationTimer at;
+
+	private Image sun; // Gif of rotating sun
 	private MediaPlayer gameSoundPlayer, settingsSoundPlayer;
 
 	@FXML
@@ -61,23 +60,23 @@ public class Controller {
 
 		// Translate to center of canvas
 		gc.translate(canvas.getWidth()/2, canvas.getHeight()/2);
-		
+
 		// Load the GIF of the sun
 		File file = new File("sun_gif3.gif");
-	    sun = new Image(file.toURI().toString());
+		sun = new Image(file.toURI().toString());
 
-	    // Load the sound files
-	    URL soundFile = getClass().getResource("Space_Trip.mp3");
-	    Media hit = new Media(soundFile.toString());
-	    gameSoundPlayer = new MediaPlayer(hit);
-	    gameSoundPlayer.setCycleCount(MediaPlayer.INDEFINITE); // Loop
-	    URL soundFile2 = getClass().getResource("Cosmic_Messages.wav");
-	    Media hit2 = new Media(soundFile2.toString());
-	    settingsSoundPlayer = new MediaPlayer(hit2);
-	    settingsSoundPlayer.setCycleCount(MediaPlayer.INDEFINITE); // Loop
-	    MediaPlayerSupport.play(settingsSoundPlayer, 2000); // Start playing the intro music
+		// Load the sound files
+		URL soundFile = getClass().getResource("Space_Trip.mp3");
+		Media hit = new Media(soundFile.toString());
+		gameSoundPlayer = new MediaPlayer(hit);
+		gameSoundPlayer.setCycleCount(MediaPlayer.INDEFINITE); // Always loop
+		URL soundFile2 = getClass().getResource("Cosmic_Messages.wav");
+		Media hit2 = new Media(soundFile2.toString());
+		settingsSoundPlayer = new MediaPlayer(hit2);
+		settingsSoundPlayer.setCycleCount(MediaPlayer.INDEFINITE); // Always loop
+		MediaPlayerSupport.play(settingsSoundPlayer, 2000); // Start playing the intro music
 
-	    // Setup the speed/delta time slider
+		// Setup the speed/delta time slider
 		dt = 1e13;
 		speed.setMax(1e14);
 		speed.setMin(1e12);
@@ -103,11 +102,10 @@ public class Controller {
 				System.out.println("Mouseclick at: " + x1 + ", " + y1 + " - Distance to sun: " + dist);
 
 				// add planet with calculated distance
-				sys.addBody(sys.getBody(dist*0.0135e17, dist*0.0135e17, BodySystem.solarmass*3, Color.YELLOW));
-
+				sys.addBody(sys.getBody(dist*0.0135e17, BodySystem.solarmass*3, Color.YELLOW, "STAR"));
 			}
 		});
-		
+
 		// Refresh the buttons
 		this.stopSimulation(null); 
 	}
@@ -116,14 +114,14 @@ public class Controller {
 	void startSimulation(ActionEvent event) {	
 		// Deactivate button: start
 		start.setDisable(true);
-		
+
 		// Deactivate button: Reset
 		reset.setDisable(true);
 
 		// Lock the textfield
 		objects.setDisable(true);
 
-		if(simulationThread==null){ // If no simulation has been started		
+		if(at==null){ // If no simulation has been started		
 			// Read input_field and create bodies
 			int n;
 			try{
@@ -139,7 +137,7 @@ public class Controller {
 				n = 100;
 			}
 			sys.addRandomBodies(n);
-			
+
 			// Change the music
 			MediaPlayerSupport.changeMusic(settingsSoundPlayer, gameSoundPlayer, 1000);
 		}
@@ -151,68 +149,67 @@ public class Controller {
 		speed.setDisable(false);
 
 		// Begin the simulation
-		Task<Void> t = new Task<Void>(){
-			@Override 
-			public Void call() {
-				long start;
-				while(true){
-					start = System.currentTimeMillis();
-					Controller.this.updateSimulation();		
-					Controller.this.drawSimulation();
-					try {
-						long x = 5 - (System.currentTimeMillis() - start);
-						if(x > 1){
-							Thread.sleep(x);							
-						}
-					} catch (InterruptedException e) {
-						System.err.println("Simulation stopped.");
-						break;
-					}
-				}
-				return null;
-			}	
-		};
-		simulationThread = new Thread(t);
-		simulationThread.start();
+		drawSimulation();
 		System.err.println("Simulation started.");
 	}
 
 	/**
-	 * Draw the model on the canvas in a JavaFX Application Thread (Platform.runLater)
+	 * Draw the model on the canvas in a JavaFX Application Thread (AnimationTimer)
 	 */
 	protected void drawSimulation() {
-		Platform.runLater(new Runnable() {
-			@Override
-			public void run() {
-				gc.translate(-canvas.getWidth()/2, -canvas.getHeight()/2);
-				gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight()); // Clear the canvas
-				String txt = "# of bodies: " + sys.getBodies().size();
-				gc.fillText(txt, 20, 30);
-				gc.translate(canvas.getWidth()/2, canvas.getHeight()/2);
+		if(at==null){
+			at = new AnimationTimer(){
+				@Override
+				public void handle(long now) {
+					Controller.this.updateSimulation();
+					gc.translate(-canvas.getWidth()/2.0, -canvas.getHeight()/2.0);
+					gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight()); // Clear the canvas
+					String txt = "# of bodies: " + sys.getBodies().size();
+					gc.fillText(txt, 20, 30);
+					//				Body center = sys.getGravityBodies().get(0);
+					//				for(Body b : sys.getGravityBodies()){
+					//					if(b.mass > center.mass){
+					//						center = b;
+					//					}
+					//				}
+					//				x = Math.round(center.rx*(canvas.getWidth()/2.0)/1e18);
+					//				y = Math.round(center.ry*(canvas.getWidth()/2.0)/1e18);
+					//				System.out.println("Translated: " + x + ", " + y);
+					gc.translate(canvas.getWidth()/2.0, canvas.getHeight()/2.0);
 
-				// Draw all the bodies
-				for(Body b : sys.getBodies()){
-					gc.setFill(b.color);    		
-					gc.fillOval((int) Math.round(b.rx*(canvas.getWidth()/2)/1e18)-b.diameter/2, (int) Math.round(b.ry*(canvas.getHeight()/2)/1e18)-b.diameter/2, b.diameter, b.diameter);
+					// Draw the bodies
+					for(Body b : sys.getBodies()){
+						gc.setFill(b.color);    		
+						gc.fillOval((int) Math.round(b.rx*(canvas.getWidth()/2)/1e18)-b.diameter/2, (int) Math.round(b.ry*(canvas.getHeight()/2)/1e18)-b.diameter/2, b.diameter, b.diameter);
+					}
+
+					// Draw the gravity bodies
+					for(Body b : sys.getGravityBodies()){
+						if(b instanceof Star){	
+							// Draw the sun(s)
+							gc.drawImage(sun, (int) Math.round(b.rx*(canvas.getWidth()/2)/1e18)-b.diameter/2, (int) Math.round(b.ry*(canvas.getHeight()/2)/1e18)-b.diameter/2, b.diameter, b.diameter);
+						} else {					
+							gc.setFill(b.color);    		
+							gc.fillOval((int) Math.round(b.rx*(canvas.getWidth()/2)/1e18)-b.diameter/2, (int) Math.round(b.ry*(canvas.getHeight()/2)/1e18)-b.diameter/2, b.diameter, b.diameter);					
+						}
+					}
+
+					// Draw the collisions
+					for(Collision b : sys.getCollisions()){
+						gc.setFill(Color.YELLOW);
+						gc.fillOval((int) Math.round(b.rx*(canvas.getWidth()/2)/1e18)-b.diameter/2, (int) Math.round(b.ry*(canvas.getHeight()/2)/1e18)-b.diameter/2, b.diameter*5, b.diameter*5);
+					}		
 				}
-				
-				// Draw the collisions
-				for(Collision b : sys.getCollisions()){
-					gc.setFill(Color.YELLOW);
-					gc.fillOval((int) Math.round(b.rx*(canvas.getWidth()/2)/1e18)-b.diameter/2, (int) Math.round(b.ry*(canvas.getHeight()/2)/1e18)-b.diameter/2, b.diameter*5, b.diameter*5);
-				}
-				
-				// Draw the sun
-				gc.drawImage(sun, -25, -25, 50, 50);
-			}
-		});
+			};
+		}
+		at.start();
 	}
 
 	@FXML
 	void stopSimulation(ActionEvent event) {
 		// Stop the simulation
-		if(simulationThread!=null){
-			simulationThread.interrupt();			
+		if(at!=null){
+			at.stop();			
 		}
 
 		// Deactivate button: Stop
@@ -223,7 +220,7 @@ public class Controller {
 
 		// Deactivate slider: speed
 		speed.setDisable(true);
-		
+
 		// Activate button: Reset
 		reset.setDisable(false);
 	}
@@ -233,12 +230,12 @@ public class Controller {
 
 	@FXML
 	void resetSimulation(ActionEvent event) {
-		simulationThread = null;
-		
+		at = null;
+
 		MediaPlayerSupport.changeMusic(gameSoundPlayer, settingsSoundPlayer, 1000);
-//		settingsSoundPlayer.play();
-//		MediaPlayerSupport.stop(gameSoundPlayer, 1000);
-		
+		//		settingsSoundPlayer.play();
+		//		MediaPlayerSupport.stop(gameSoundPlayer, 1000);
+
 		// Unlock textfield: objects
 		objects.setDisable(false);
 	}
@@ -249,6 +246,5 @@ public class Controller {
 	private void updateSimulation(){
 		sys.updatePositions(dt); // Update the model
 	}
-
 
 }

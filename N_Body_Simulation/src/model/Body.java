@@ -2,7 +2,7 @@ package model;
 
 import javafx.scene.paint.Color;
 
-public class Body {
+public abstract class Body {
 
 	public double rx, ry;       // holds the cartesian positions
 	public double vx, vy;       // velocity components 
@@ -23,6 +23,49 @@ public class Body {
 		impacts = 0;
 		addBodyMass(null);
 	}
+	
+	public Body(double dist, double mass, Color color){
+		double angle = Math.random()*Math.PI*2;
+		rx = Math.cos(angle)*dist;
+		ry = Math.sin(angle)*dist;
+		
+		double magv = circlev(rx,ry);
+
+		double absangle = Math.atan(Math.abs(ry/rx));
+		double thetav= Math.PI/2-absangle;
+		vx = -1*Math.signum(ry)*Math.cos(thetav)*magv;
+		vy = Math.signum(rx)*Math.sin(thetav)*magv;
+
+		this.mass = mass;
+		this.color = color;
+		addBodyMass(null);
+	}
+	
+	public Body(double rx, double ry, double mass, Color color){
+		this.rx = rx;
+		this.ry = ry;
+		if(mass!=0.0){
+			this.mass = mass;	
+		} else {
+			this.mass = Math.random()*1e7;
+		}
+		this.color = color;
+		double magv = circlev(rx,ry);
+
+		double absangle = Math.atan(Math.abs(ry/rx));
+		double thetav= Math.PI/2-absangle;
+		vx = -1*Math.signum(ry)*Math.cos(thetav)*magv;
+		vy = Math.signum(rx)*Math.sin(thetav)*magv;
+		addBodyMass(null);
+	}
+	
+	//the bodies are initialized in circular orbits around the central mass.
+	//This is just some physics to do that
+	public double circlev(double rx, double ry) {
+		double r2=Math.sqrt(rx*rx+ry*ry);
+		double numerator=BodySystem.G*BodySystem.solarmass;
+		return Math.sqrt(numerator/r2);
+	}	
 
 	public void addBodyMass(Body b){
 		// Adjust the size & color according to the bodys mass
