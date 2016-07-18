@@ -16,5 +16,12 @@ public class Comet extends Body{
 	public Comet(double dist, double mass, Color color){
 		super(dist, mass, color);
 	}
+	
+	@Override
+	public double circlev(double rx, double ry) {
+		double r2=Math.sqrt(rx*rx+ry*ry);
+		double numerator=BodySystem.G*BodySystem.solarmass*0.1;
+		return Math.sqrt(numerator/r2);
+	}	
 
 }

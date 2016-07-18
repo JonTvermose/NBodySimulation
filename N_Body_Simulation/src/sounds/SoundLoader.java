@@ -17,9 +17,9 @@ public class SoundLoader {
 	}
 	
 	public MediaPlayer getSettingsSoundPlayer(){
-		URL soundFile2 = getClass().getResource("Cosmic_Messages.wav");
-		Media hit2 = new Media(soundFile2.toString());
-		MediaPlayer settingsSoundPlayer = new MediaPlayer(hit2);
+		URL soundFile = getClass().getResource("Cosmic_Messages.wav");
+		Media hit = new Media(soundFile.toString());
+		MediaPlayer settingsSoundPlayer = new MediaPlayer(hit);
 		settingsSoundPlayer.setCycleCount(MediaPlayer.INDEFINITE); // Always loop
 		return settingsSoundPlayer;
 	}

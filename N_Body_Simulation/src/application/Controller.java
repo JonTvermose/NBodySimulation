@@ -1,6 +1,7 @@
 package application;
 
 import java.io.File;
+import java.util.ArrayList;
 
 import javafx.animation.AnimationTimer;
 import javafx.beans.value.ChangeListener;
@@ -8,6 +9,7 @@ import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
+import javafx.geometry.Point2D;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
@@ -49,19 +51,22 @@ public class Controller {
 	private GraphicsContext gc;
 	private BodySystem sys;
 	private SoundLoader soundLoader;
-	private double dt; // delta time between physics calculation
 	private AnimationTimer at;
 
 	private Image sun, black_hole; // Gif of rotating sun
 	private MediaPlayer gameSoundPlayer, settingsSoundPlayer;
+	
+	private double translateX, translateY;
 
 	@FXML
 	void initialize(){
 		this.gc = canvas.getGraphicsContext2D();
-		this.sys = new BodySystem(canvas);
+		this.sys = new BodySystem();
 
 		// Translate to center of canvas
-		gc.translate(canvas.getWidth()/2, canvas.getHeight()/2);
+		translateX = canvas.getWidth()/2.0;
+		translateY = canvas.getHeight()/2.0;
+		gc.translate(translateX, translateY);
 
 		// Load the GIF of the sun
 		File file = new File("sun_gif3.gif");
@@ -76,15 +81,14 @@ public class Controller {
 		MediaPlayerSupport.play(settingsSoundPlayer, 2000); // Start playing the intro music
 
 		// Setup the speed/delta time slider
-		dt = 1e13;
-		speed.setMax(5e14);
-		speed.setMin(1e12);
-		speed.setValue(dt);
+		speed.setMax(BodySystem.maxDeltaTime);
+		speed.setMin(BodySystem.minDeltaTime);
+		speed.setValue(sys.getDeltaTime());
 		speed.valueProperty().addListener(new ChangeListener<Number>() {
 			@Override
 			public void changed(ObservableValue<? extends Number> observable,
 					Number oldValue, Number newValue) {
-				dt = (double) newValue;
+				sys.setDeltaTime((double) newValue);
 			}
 		});
 
@@ -93,15 +97,22 @@ public class Controller {
 			@Override
 			public void handle(MouseEvent event) {				
 				// Calculate distance from mouseclick to the sun (center of canvas)
-				double x1 = event.getX();
-				double y1 = event.getY();
-				double x2 = canvas.getWidth()/2;
-				double y2 = canvas.getHeight()/2;
+				double x1 = event.getX() - translateX;
+				double y1 = event.getY() - translateY;
+				double test = x1/((canvas.getWidth()/2)/1e18);
+				double test2 = y1/((canvas.getHeight()/2)/1e18);
+				Body b = sys.getGravityBodies().get(0);
+				double x2 = b.rx*(canvas.getWidth()/2)/1e18;
+				double y2 = b.ry*(canvas.getHeight()/2)/1e18;
 				double dist = Math.abs(Math.sqrt(Math.pow((x2-x1), 2)+Math.pow(y2-y1, 2)));
+				
 				System.out.println("Mouseclick at: " + x1 + ", " + y1 + " - Distance to sun: " + dist);
+				System.out.println("Mouseclick at: " + test + ", " + test2 + " - Distance to sun: " + dist);
+				
 
 				// add planet with calculated distance
-				sys.addBody(sys.getBody(dist*0.0135e17, BodySystem.solarmass, Color.BLACK, "BLACK HOLE"));
+//				sys.addBody(sys.getBody(dist*0.0135e17, BodySystem.earthmass*317, Color.WHITE, "BLACK HOLE"));
+				sys.addBody(new BlackHole(test, test2, BodySystem.solarmass*0.1, Color.WHITE));
 			}
 		});
 
@@ -120,7 +131,7 @@ public class Controller {
 		// Lock the textfield
 		objects.setDisable(true);
 
-		if(at==null){ // If no simulation has been started		
+		if(at==null){ // If no simulation has been started then:		
 			// Read input_field and create bodies
 			int n;
 			try{
@@ -146,33 +157,33 @@ public class Controller {
 		System.err.println("Simulation started.");
 	}
 
+
 	/**
 	 * Draw the model on the canvas in a JavaFX Application Thread (AnimationTimer)
 	 */
-	protected void drawSimulation() {
+	private void drawSimulation() {
 		if(at==null){
 			at = new AnimationTimer(){
 				@Override
 				public void handle(long now) {
-					Controller.this.updateSimulation();
-					gc.translate(-canvas.getWidth()/2.0, -canvas.getHeight()/2.0);
-					gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight()); // Clear the canvas
+					// Update the model
+					Controller.this.sys.updatePositions(); 
+					
+					// Clear the canvas
+					gc.translate(-translateX, -translateY);
+					gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight()); 
 					String txt = "# of bodies: " + sys.getBodies().size();
 					gc.fillText(txt, 20, 30);
-					//				Body center = sys.getGravityBodies().get(0);
-					//				for(Body b : sys.getGravityBodies()){
-					//					if(b.mass > center.mass){
-					//						center = b;
-					//					}
-					//				}
-					//				x = Math.round(center.rx*(canvas.getWidth()/2.0)/1e18);
-					//				y = Math.round(center.ry*(canvas.getWidth()/2.0)/1e18);
-					//				System.out.println("Translated: " + x + ", " + y);
-					gc.translate(canvas.getWidth()/2.0, canvas.getHeight()/2.0);
+					
+					// Update the translate vector to match center of gravity
+					Point2D gravityCenter = sys.getGravityCenter(canvas);
+					translateX = canvas.getWidth()/2.0 - gravityCenter.getX();
+					translateY = canvas.getHeight()/2.0 - gravityCenter.getY();
+					gc.translate(translateX, translateY);
 
 					// Draw the bodies
 					for(Body b : sys.getBodies()){
-						if(b instanceof Comet){
+						if(b instanceof Comet){ // Comets are larger, and have a tail
 							gc.setFill(b.color); 
 							gc.setStroke(b.color);
 							gc.setLineWidth(2);
@@ -185,7 +196,7 @@ public class Controller {
 							double tailY = y + (Math.abs(canvas.getHeight()-dist)/50)*Math.sin(angle); // TODO
 							gc.strokeLine(x+4, y+4, tailX, tailY);
 
-						} else {							
+						} else { // Asteroids							
 							gc.setFill(b.color);    		
 							gc.fillOval(b.rx*(canvas.getWidth()/2)/1e18-b.diameter/2, b.ry*(canvas.getHeight()/2)/1e18-b.diameter/2, b.diameter, b.diameter);
 						}
@@ -196,11 +207,11 @@ public class Controller {
 						if(b instanceof Star){	
 							// Draw the sun(s)
 							gc.drawImage(sun, b.rx*(canvas.getWidth()/2)/1e18-b.diameter/2, b.ry*(canvas.getHeight()/2)/1e18-b.diameter/2, b.diameter, b.diameter);
+//							System.out.println((b.rx*(canvas.getWidth()/2)/1e18-b.diameter/2) + ", " + (b.ry*(canvas.getHeight()/2)/1e18-b.diameter/2));
 						} else if (b instanceof BlackHole) {
 							gc.drawImage(black_hole, b.rx*(canvas.getWidth()/2)/1e18-b.diameter/4, b.ry*(canvas.getHeight()/2)/1e18-b.diameter/4, b.diameter/2, b.diameter/2);
 							gc.setFill(Color.BLACK);
 							gc.fillOval(b.rx*(canvas.getWidth()/2)/1e18-b.diameter/2, b.ry*(canvas.getHeight()/2)/1e18-b.diameter/2, b.diameter, b.diameter);					
-
 						} else {
 							gc.setFill(b.color);    		
 							gc.fillOval((int) Math.round(b.rx*(canvas.getWidth()/2)/1e18)-b.diameter/2, (int) Math.round(b.ry*(canvas.getHeight()/2)/1e18)-b.diameter/2, b.diameter, b.diameter);					
@@ -254,13 +265,6 @@ public class Controller {
 		
 		// Lock the reset field
 		reset.setDisable(true);
-	}
-
-	/**
-	 * Update the model
-	 */
-	private void updateSimulation(){
-		sys.updatePositions(dt); // Update the model
 	}
 
 }

@@ -2,6 +2,7 @@ package model;
 
 import java.util.ArrayList;
 
+import javafx.geometry.Point2D;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.paint.Color;
 
@@ -12,16 +13,15 @@ public class BodySystem {
 	public static final double earthDistance = 1.47e17;
 
 	protected static final double G = 6.673e-11;   // gravitational constant
+	public static final double maxDeltaTime = 5e14; // Maximum delta time between calculations
+	public static final double minDeltaTime = 1e12; // Minimum delta time between calculations
 
-	private double factor;
-	private Canvas canvas;
+	private double deltaTime = 1e13;
 	private ArrayList<Body> bodies, gravityBodies;
 	private ArrayList<Collision> collisions; // Body's that has been removed in the last update due to collision with another body
 	private int frame;
 
-	public BodySystem(Canvas c){
-		this.canvas = c;
-		factor = (canvas.getWidth()/2)/1e18;
+	public BodySystem(){
 		frame = 0;
 		collisions = new ArrayList<Collision>();
 		resetBodies();
@@ -30,7 +30,7 @@ public class BodySystem {
 	public void resetBodies(){		
 		gravityBodies = new ArrayList<Body>();
 		bodies = new ArrayList<Body>();
-		
+
 		double px = earthDistance; // Earth orbit distance from sun
 
 		// Create the solar system (sun + planets)
@@ -50,8 +50,8 @@ public class BodySystem {
 		gravityBodies.add(mars);
 		gravityBodies.add(jupiter);
 		gravityBodies.add(saturn);
-//		gravityBodies.add(uranus);
-//		gravityBodies.add(neptune);
+		//		gravityBodies.add(uranus);
+		//		gravityBodies.add(neptune);
 	}
 
 	public Body getBody(double dist, double mass, Color c, String type){
@@ -106,7 +106,7 @@ public class BodySystem {
 		return -Math.exp(1 - Math.random()) / lambda;
 	}
 
-	public synchronized void updatePositions(double dt){
+	public synchronized void updatePositions(){
 		if(frame == Integer.MAX_VALUE){
 			collisions = new ArrayList<Collision>();
 			frame = 0;
@@ -153,12 +153,18 @@ public class BodySystem {
 
 		//Then, loop again and update the bodies using timestep dt
 		for (Body b : bodies) { 
-			b.update(dt);
+			b.update(deltaTime);
 		}
 		for(Body b : gravityBodies){
-			b.update(dt);
+			b.update(deltaTime);
 		}
 	}	
+
+	public synchronized void setDeltaTime(double dt){
+		if(dt <= BodySystem.maxDeltaTime && dt >= BodySystem.minDeltaTime){
+			this.deltaTime = dt;			
+		}
+	}
 
 	// Check if two bodies are visually collided
 	private boolean collided(Body a, Body b){
@@ -167,7 +173,7 @@ public class BodySystem {
 		double x2 = b.rx;
 		double y2 = b.ry;
 		double dist = Math.abs(Math.sqrt(Math.pow((x2-x1), 2)+Math.pow(y2-y1, 2)));
-//		System.out.println("Dist: " + dist);
+		//		System.out.println("Dist: " + dist);
 		if(dist < 7e15){
 			return true;
 		}
@@ -188,6 +194,21 @@ public class BodySystem {
 		}
 		collisions = out;
 		return out;
+	}
+
+	public double getDeltaTime() {
+		return this.deltaTime;
+	}
+
+	public Point2D getGravityCenter(Canvas canvas) {
+		double x = 0, y = 0;
+		double totalMass = 0;
+		for(Body b : this.gravityBodies){
+			x += (b.rx *(canvas.getWidth()/2)/1e18) * b.mass;
+			y += (b.ry *(canvas.getWidth()/2)/1e18) * b.mass;
+			totalMass += b.mass;
+		}
+		return new Point2D(x/totalMass, y/totalMass);
 	}
 
 }
