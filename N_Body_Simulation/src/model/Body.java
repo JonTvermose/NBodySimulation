@@ -83,7 +83,7 @@ public abstract class Body {
 			diameter = diameter/5;
 		}
 		if(this instanceof BlackHole){
-			diameter = diameter/10;
+			diameter = diameter;
 		}
 		impacts++;
 	}

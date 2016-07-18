@@ -23,11 +23,13 @@
                <children>
                   <Button fx:id="start" layoutX="209.0" layoutY="50.0" mnemonicParsing="false" onAction="#startSimulation" prefWidth="60.0" text="Start" />
                   <Button fx:id="stop" layoutX="276.0" layoutY="50.0" mnemonicParsing="false" onAction="#stopSimulation" prefWidth="60.0" text="Stop" />
-                  <Slider fx:id="speed" layoutX="483.0" layoutY="56.0" onDragDone="#setSimulationSpeed" />
+                  <Slider fx:id="speed" layoutX="483.0" layoutY="56.0" />
                   <TextField fx:id="objects" layoutX="36.0" layoutY="50.0" />
                   <Label layoutX="36.0" layoutY="27.0" text="Number of objects:" />
                   <Label layoutX="468.0" layoutY="27.0" text="Delta Time between calculations" />
                   <Button fx:id="reset" layoutX="346.0" layoutY="51.0" mnemonicParsing="false" onAction="#resetSimulation" prefWidth="60.0" text="Reset" />
+                  <Slider fx:id="zoom" layoutX="687.0" layoutY="57.0" />
+                  <Label layoutX="741.0" layoutY="27.0" text="Zoom" />
                </children>
             </Pane>
          </children>

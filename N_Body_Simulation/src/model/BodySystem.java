@@ -50,8 +50,8 @@ public class BodySystem {
 		gravityBodies.add(mars);
 		gravityBodies.add(jupiter);
 		gravityBodies.add(saturn);
-		//		gravityBodies.add(uranus);
-		//		gravityBodies.add(neptune);
+		gravityBodies.add(uranus);
+		gravityBodies.add(neptune);
 	}
 
 	public Body getBody(double dist, double mass, Color c, String type){
@@ -87,10 +87,20 @@ public class BodySystem {
 		}
 		for (int i = 0; i < n; i++) {
 			double px = Math.abs(1e18*exp(-1.8)*(.5-Math.random())); // Exponential objects. More at the center
-			double dist = Math.abs(Math.random()*earthDistance*9.6); //1.5e18); // Linear objects
+			double dist = Math.abs(Math.random()*earthDistance*40); //1.5e18); // Linear objects
 			double mass = Math.abs(Math.random()*9.393e20*exp(1.8)); // Up to the mass of Ceres
 			Color color = Color.ANTIQUEWHITE;
 			bodies.add(new Asteroid(dist, mass, color));
+		}
+		addComets(n/1000);
+	}
+
+	private void addComets(int n){
+		for(int i=0; i<n; i++){
+			double dist = Math.abs(Math.random()*earthDistance*9.6); //1.5e18); // Linear objects
+			double mass = Math.abs(Math.random()*9.393e20*exp(1.8)); // Up to the mass of Ceres
+			Color color = Color.ANTIQUEWHITE;
+			bodies.add(new Comet(dist, mass, color));
 		}
 	}
 
