@@ -1,7 +1,6 @@
 package application;
 
 import java.io.File;
-import java.net.URL;
 
 import javafx.animation.AnimationTimer;
 import javafx.beans.value.ChangeListener;
@@ -16,10 +15,8 @@ import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
-import model.Asteroid;
 import model.BlackHole;
 import model.Body;
 import model.BodySystem;
@@ -27,6 +24,7 @@ import model.Collision;
 import model.Comet;
 import model.Star;
 import sounds.MediaPlayerSupport;
+import sounds.SoundLoader;
 
 public class Controller {
 
@@ -50,6 +48,7 @@ public class Controller {
 
 	private GraphicsContext gc;
 	private BodySystem sys;
+	private SoundLoader soundLoader;
 	private double dt; // delta time between physics calculation
 	private AnimationTimer at;
 
@@ -71,14 +70,9 @@ public class Controller {
 		black_hole = new Image(file2.toURI().toString());
 
 		// Load the sound files
-		URL soundFile = getClass().getResource("Space_Trip.mp3");
-		Media hit = new Media(soundFile.toString());
-		gameSoundPlayer = new MediaPlayer(hit);
-		gameSoundPlayer.setCycleCount(MediaPlayer.INDEFINITE); // Always loop
-		URL soundFile2 = getClass().getResource("Cosmic_Messages.wav");
-		Media hit2 = new Media(soundFile2.toString());
-		settingsSoundPlayer = new MediaPlayer(hit2);
-		settingsSoundPlayer.setCycleCount(MediaPlayer.INDEFINITE); // Always loop
+		soundLoader = new SoundLoader();
+		gameSoundPlayer = soundLoader.getGameSoundPlayer();
+		settingsSoundPlayer = soundLoader.getSettingsSoundPlayer();
 		MediaPlayerSupport.play(settingsSoundPlayer, 2000); // Start playing the intro music
 
 		// Setup the speed/delta time slider
@@ -187,8 +181,8 @@ public class Controller {
 							gc.fillOval(x, y, 8, 8);
 							double dist = Math.sqrt(x*x+y*y);
 							double angle = Math.atan2(y,x);
-							double tailX = dist*Math.cos(Math.toRadians(angle)); // TODO - calculate based on distance to sun (center) and angle
-							double tailY = dist*Math.sin(Math.toRadians(angle)); // TODO
+							double tailX = x + (Math.abs(canvas.getWidth()-dist)/50)*Math.cos(angle); // TODO - calculate based on distance to sun (center) and angle
+							double tailY = y + (Math.abs(canvas.getHeight()-dist)/50)*Math.sin(angle); // TODO
 							gc.strokeLine(x+4, y+4, tailX, tailY);
 
 						} else {							
@@ -257,6 +251,9 @@ public class Controller {
 
 		// Unlock textfield: objects
 		objects.setDisable(false);
+		
+		// Lock the reset field
+		reset.setDisable(true);
 	}
 
 	/**
