@@ -47,7 +47,7 @@ public class Controller {
 
 	@FXML
 	private Slider speed; // Set the delta time of the simulation
-	
+
 	@FXML
 	private Slider zoom; // Set the zoom level of the Canvas
 
@@ -58,7 +58,7 @@ public class Controller {
 
 	private Image sun, black_hole; // GIF of rotating sun/black hole
 	private MediaPlayer gameSoundPlayer, settingsSoundPlayer;
-	
+
 	private double translateX, translateY; 
 	private double scale; // "Zoom" level of the canvas
 
@@ -96,7 +96,7 @@ public class Controller {
 				sys.setDeltaTime((double) newValue);
 			}
 		});
-		
+
 		// Setup the zoom level slider
 		zoom.setMax(5e18);
 		zoom.setMin(1e17);
@@ -174,36 +174,43 @@ public class Controller {
 				public void handle(long now) {
 					// Update the model
 					Controller.this.sys.updatePositions(); 	
-					
+
 					// Clear the canvas
 					gc.translate(-translateX, -translateY);
 					gc.clearRect(-canvas.getWidth(), -canvas.getHeight(), canvas.getWidth()*2, canvas.getHeight()*2); 
-					String txt = "# of bodies: " + sys.getBodies().size();
+					int totalBodies = 0;
+					for(ArrayList<Body> bodies : sys.getBodies()){
+						totalBodies += bodies.size();
+					}
+					String txt = "# of bodies: " + totalBodies;
+					gc.setFill(Color.YELLOW);
 					gc.fillText(txt, 20, 30);
-					
+
 					// Update the translate vector to match center of gravity
-//					Point2D gravityCenter = sys.getGravityCenter(canvas);
-//					translateX = canvas.getWidth()/2.0 - gravityCenter.getX();
-//					translateY = canvas.getHeight()/2.0 - gravityCenter.getY();
+					//					Point2D gravityCenter = sys.getGravityCenter(canvas);
+					//					translateX = canvas.getWidth()/2.0 - gravityCenter.getX();
+					//					translateY = canvas.getHeight()/2.0 - gravityCenter.getY();
 					gc.translate(translateX, translateY);
-					
+
 					// Draw the bodies (Comets & Asteroids)
 					Point2D p;
-					for(Body b : sys.getBodies()){
-						p = transformToPixels(b.rx, b.ry);
-						if(b instanceof Comet){ // Comets are larger, and have a tail
-							gc.setFill(b.color); 
-							gc.fillOval(p.getX(), p.getY(), 8, 8); // Draw the body
-//							gc.setStroke(b.color);
-//							gc.setLineWidth(2);
-//							double dist = Math.sqrt(p.getX()*p.getX() + p.getY()*p.getY());
-//							double angle = Math.atan2(p.getY(), p.getX());
-//							double tailX = p.getX() + (Math.abs(canvas.getWidth()-dist)/50)*Math.cos(angle); // TODO - calculate based on distance to sun (center) and angle
-//							double tailY = p.getY() + (Math.abs(canvas.getHeight()-dist)/50)*Math.sin(angle); // TODO
-//							gc.strokeLine(p.getX()+4, p.getY()+4, tailX, tailY); // Draw the tail
-						} else { // Asteroids							
-							gc.setFill(b.color);
-							gc.fillOval(p.getX()-b.diameter/2, p.getY()-b.diameter/2, b.diameter, b.diameter);
+					for(ArrayList<Body> bodies : sys.getBodies()){
+						for(Body b : bodies){
+							p = transformToPixels(b.rx, b.ry);
+							if(b instanceof Comet){ // Comets are larger, and have a tail
+								gc.setFill(b.color); 
+								gc.fillOval(p.getX(), p.getY(), 8, 8); // Draw the body
+								//							gc.setStroke(b.color);
+								//							gc.setLineWidth(2);
+								//							double dist = Math.sqrt(p.getX()*p.getX() + p.getY()*p.getY());
+								//							double angle = Math.atan2(p.getY(), p.getX());
+								//							double tailX = p.getX() + (Math.abs(canvas.getWidth()-dist)/50)*Math.cos(angle); // TODO - calculate based on distance to sun (center) and angle
+								//							double tailY = p.getY() + (Math.abs(canvas.getHeight()-dist)/50)*Math.sin(angle); // TODO
+								//							gc.strokeLine(p.getX()+4, p.getY()+4, tailX, tailY); // Draw the tail
+							} else { // Asteroids							
+								gc.setFill(b.color);
+								gc.fillOval(p.getX()-b.diameter/2, p.getY()-b.diameter/2, b.diameter, b.diameter);
+							}
 						}
 					}
 					// Draw the gravity bodies
@@ -260,39 +267,39 @@ public class Controller {
 
 		// Unlock textfield: objects
 		objects.setDisable(false);
-		
+
 		// Lock the reset field
 		reset.setDisable(true);
 	}
 
 	public void setTranslate(double translateX, double translateY) {
-//		this.translateX += translateX;
-//		this.translateY += translateY;
+		//		this.translateX += translateX;
+		//		this.translateY += translateY;
 	}
-	
+
 	private Point2D transformToPixels(Point2D p){
 		double x = p.getX()*(canvas.getWidth()/2)/scale;
 		double y = p.getY()*(canvas.getHeight()/2)/scale;
 		return new Point2D(x,y);
 	}
-	
+
 	private Point2D transformToPixels(double x, double y){
 		double x1 = x*(canvas.getWidth()/2)/scale;
 		double y1 = y*(canvas.getHeight()/2)/scale;
 		return new Point2D(x1,y1);
 	}
-	
+
 	private Point2D transformToUniverse(Point2D p){
 		double x = p.getX()/((canvas.getWidth()/2)/scale);
 		double y = p.getY()/((canvas.getHeight()/2)/scale);
 		return new Point2D(x,y);
 	}
-	
+
 	private Point2D transformToUniverse(double x, double y){
 		double x1 = x/((canvas.getWidth()/2)/scale);
 		double y1 = y/((canvas.getHeight()/2)/scale);
 		return new Point2D(x1,y1);
 	}
-	
+
 
 }

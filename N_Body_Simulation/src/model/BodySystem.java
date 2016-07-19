@@ -18,18 +18,23 @@ public class BodySystem {
 
 	private double deltaTime = 1e13;
 	private ArrayList<Body> bodies, gravityBodies;
-	private ArrayList<Collision> collisions; // Body's that has been removed in the last update due to collision with another body
+	private ArrayList<Collision> collisions; // Bodyies that has been removed in the last update due to collision with another body
 	private int frame;
+
+	private ArrayList<ArrayList<Body>> bodiesList; // List containing the 4 list of non gravity bodies
+	private ArrayList<ArrayList<Collision>> collisionsList;
 
 	public BodySystem(){
 		frame = 0;
-		collisions = new ArrayList<Collision>();
+		collisionsList = new ArrayList<ArrayList<Collision>>();
 		resetBodies();
 	}
 
 	public void resetBodies(){		
+		bodiesList = new ArrayList<ArrayList<Body>>();
+
 		gravityBodies = new ArrayList<Body>();
-		bodies = new ArrayList<Body>();
+		//		bodies = new ArrayList<Body>();
 
 		double px = earthDistance; // Earth orbit distance from sun
 
@@ -71,8 +76,8 @@ public class BodySystem {
 		}
 	}
 
-	public ArrayList<Body> getBodies(){
-		return bodies;
+	public ArrayList<ArrayList<Body>> getBodies(){
+		return bodiesList;
 	}
 
 	public ArrayList<Body> getGravityBodies(){
@@ -80,19 +85,25 @@ public class BodySystem {
 	}
 
 	public void addRandomBodies(int n){
-		if(n > 125000){
-			n = 125000;
+		if(n > 250000){
+			n = 250000;
 		} else if (n < 0){
 			n = 0;
+		}	
+		for(int r = 0; r < 4; r++){
+			bodies = new ArrayList<Body>();
+			collisions = new ArrayList<Collision>();
+
+			for (int i = 0; i < n/4; i++) {
+				double px = Math.abs(1e18*exp(-1.8)*(.5-Math.random())); // Exponential objects. More at the center
+				double dist = Math.abs(Math.random()*earthDistance*40); //1.5e18); // Linear objects
+				double mass = Math.abs(Math.random()*9.393e20*exp(1.8)); // Up to the mass of Ceres
+				Color color = Color.ANTIQUEWHITE;
+				bodies.add(new Asteroid(dist, mass, color));
+			}
+			this.bodiesList.add(bodies);
+			this.collisionsList.add(collisions);
 		}
-		for (int i = 0; i < n; i++) {
-			double px = Math.abs(1e18*exp(-1.8)*(.5-Math.random())); // Exponential objects. More at the center
-			double dist = Math.abs(Math.random()*earthDistance*40); //1.5e18); // Linear objects
-			double mass = Math.abs(Math.random()*9.393e20*exp(1.8)); // Up to the mass of Ceres
-			Color color = Color.ANTIQUEWHITE;
-			bodies.add(new Asteroid(dist, mass, color));
-		}
-		addComets(n/1000);
 	}
 
 	private void addComets(int n){
@@ -117,26 +128,21 @@ public class BodySystem {
 	}
 
 	public synchronized void updatePositions(){
+		long start = System.currentTimeMillis();
 		if(frame == Integer.MAX_VALUE){
 			collisions = new ArrayList<Collision>();
 			frame = 0;
 		}
 		frame++;
 
-		for (int i = 0; i < bodies.size(); i++) {
-			bodies.get(i).resetForce();
-			for (int j = 0; j < gravityBodies.size(); j++) {
-				bodies.get(i).addForce(gravityBodies.get(j));
-				// If two bodies collide then we merge them and keep the combined mass in a single item
-				if(collided(bodies.get(i), gravityBodies.get(j))){ 
-					gravityBodies.get(j).addBodyMass(bodies.get(i));
-					collisions.add(new Collision(bodies.get(i), frame));
-					bodies.remove(i);
-					i--;						
-				}
-			}
+		// Assign data and work to workerthreads. They will update all non-gravity bodies in the system
+		Thread workers[] = new Thread[4];		
+		for(int i=0; i<4; i++){
+			workers[i]= new Thread(new WorkerThread(bodiesList.get(i), gravityBodies, this.deltaTime, this.frame, i, this));
+			workers[i].start();
 		}
 
+		// Update the gravitybodies
 		for(int i = 0; i < gravityBodies.size(); i++){
 			gravityBodies.get(i).resetForce();
 			for (int j = 0; j < gravityBodies.size(); j++){
@@ -161,13 +167,19 @@ public class BodySystem {
 			}
 		}
 
-		//Then, loop again and update the bodies using timestep dt
-		for (Body b : bodies) { 
-			b.update(deltaTime);
-		}
 		for(Body b : gravityBodies){
 			b.update(deltaTime);
 		}
+		
+		// Wait for each workerthread to finish
+		for(int i=0; i<4; i++){
+			try {
+				workers[i].join();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		System.out.println("Update time: " + (System.currentTimeMillis() - start));
 	}	
 
 	public synchronized void setDeltaTime(double dt){
@@ -196,13 +208,15 @@ public class BodySystem {
 	 */
 	public ArrayList<Collision> getCollisions(){
 		ArrayList<Collision> out = new ArrayList<Collision>();
-		final int framesToShow = 5;
-		for(Collision c : collisions){
-			if(c.frame > frame - framesToShow){
-				out.add(c);
-			}
-		}
-		collisions = out;
+//		final int framesToShow = 5;
+//		for(ArrayList<Collision> collisions : collisionsList){
+//			for(Collision c : collisions){
+//				if(c.frame > frame - framesToShow){
+//					out.add(c);
+//				}
+//			}
+//			collisions = out;
+//		}
 		return out;
 	}
 
@@ -219,6 +233,10 @@ public class BodySystem {
 			totalMass += b.mass;
 		}
 		return new Point2D(x/totalMass, y/totalMass);
+	}
+
+	public ArrayList<Collision> getCollisionsList(int i) {
+		return collisionsList.get(i);
 	}
 
 }
