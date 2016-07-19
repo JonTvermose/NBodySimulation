@@ -20,6 +20,12 @@ public class BodySystem {
 	private ArrayList<Body> bodies, gravityBodies;
 	private ArrayList<Collision> collisions; // Bodyies that has been removed in the last update due to collision with another body
 	private int frame;
+	
+	private final int CORES = Runtime.getRuntime().availableProcessors(); // Estimated number of cores (may include virtual cores)
+	private final int OPTIMALTHREADCOUNT = CORES*2; // Benchmarking shows better performance at more threads pr. core
+	
+	double avgTime = 0; // TODO debug
+	long updates = 0; // TODO debug
 
 	private ArrayList<ArrayList<Body>> bodiesList; // List containing the 4 list of non gravity bodies
 	private ArrayList<ArrayList<Collision>> collisionsList;
@@ -90,11 +96,11 @@ public class BodySystem {
 		} else if (n < 0){
 			n = 0;
 		}	
-		for(int r = 0; r < 4; r++){
+		for(int r = 0; r < OPTIMALTHREADCOUNT; r++){
 			bodies = new ArrayList<Body>();
 			collisions = new ArrayList<Collision>();
 
-			for (int i = 0; i < n/4; i++) {
+			for (int i = 0; i < n/OPTIMALTHREADCOUNT; i++) {
 				double px = Math.abs(1e18*exp(-1.8)*(.5-Math.random())); // Exponential objects. More at the center
 				double dist = Math.abs(Math.random()*earthDistance*40); //1.5e18); // Linear objects
 				double mass = Math.abs(Math.random()*9.393e20*exp(1.8)); // Up to the mass of Ceres
@@ -136,8 +142,8 @@ public class BodySystem {
 		frame++;
 
 		// Assign data and work to workerthreads. They will update all non-gravity bodies in the system
-		Thread workers[] = new Thread[4];		
-		for(int i=0; i<4; i++){
+		Thread workers[] = new Thread[OPTIMALTHREADCOUNT];		
+		for(int i=0; i<OPTIMALTHREADCOUNT; i++){
 			workers[i]= new Thread(new WorkerThread(bodiesList.get(i), gravityBodies, this.deltaTime, this.frame, i, this));
 			workers[i].start();
 		}
@@ -172,14 +178,16 @@ public class BodySystem {
 		}
 		
 		// Wait for each workerthread to finish
-		for(int i=0; i<4; i++){
+		for(int i=0; i<OPTIMALTHREADCOUNT; i++){
 			try {
 				workers[i].join();
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 		}
-		System.out.println("Update time: " + (System.currentTimeMillis() - start));
+		this.updates++;
+		this.avgTime += System.currentTimeMillis() - start;
+		System.out.println("Update time: " + (avgTime/updates) + " - OPTIMALTHREADCOUNT: " + OPTIMALTHREADCOUNT);
 	}	
 
 	public synchronized void setDeltaTime(double dt){
