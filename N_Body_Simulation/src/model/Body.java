@@ -23,12 +23,12 @@ public abstract class Body {
 		impacts = 0;
 		addBodyMass(null);
 	}
-	
+
 	public Body(double dist, double mass, Color color){
 		double angle = Math.random()*Math.PI*2;
 		rx = Math.cos(angle)*dist;
 		ry = Math.sin(angle)*dist;
-		
+
 		double magv = circlev(rx,ry);
 
 		double absangle = Math.atan(Math.abs(ry/rx));
@@ -38,9 +38,10 @@ public abstract class Body {
 
 		this.mass = mass;
 		this.color = color;
+		//		System.out.println("Pos: " + rx + "," + ry + " - Velocity: " + magv);
 		addBodyMass(null);
 	}
-	
+
 	public Body(double rx, double ry, double mass, Color color){
 		this.rx = rx;
 		this.ry = ry;
@@ -58,7 +59,7 @@ public abstract class Body {
 		vy = Math.signum(rx)*Math.sin(thetav)*magv;
 		addBodyMass(null);
 	}
-	
+
 	//the bodies are initialized in circular orbits around the central mass.
 	//This is just some physics to do that
 	public double circlev(double rx, double ry) {
@@ -127,6 +128,28 @@ public abstract class Body {
 		double F = (BodySystem.G * a.mass * b.mass) / (dist*dist + EPS*EPS);
 		a.fx += F * dx / dist;
 		a.fy += F * dy / dist;
+	}
+
+	public Body(double semiMajor, double eccentricity, double radius, double longAscendNode, double argPeri, double mass, Color color){
+		this.mass = mass;
+		this.color = color;
+		if(semiMajor == 0.0 || radius == 0.0){
+			this.rx = 0.0;
+			this.ry = 0.0;
+			this.vx = 0.0;
+			this.vy = 0.0;
+		} else {			
+			double semiMinor = semiMajor * Math.sqrt(1-eccentricity*eccentricity);
+			double degrees = longAscendNode + argPeri;
+			rx = semiMajor * Math.cos(Math.toRadians(degrees));
+			ry = semiMinor * Math.sin(Math.toRadians(degrees));
+			double velocity = Math.sqrt((BodySystem.solarmass*BodySystem.G)*((2.0/radius)-(1.0/semiMajor)));
+			double vAngle = Math.PI/2-Math.atan(Math.abs(ry/rx));
+			vx = -1*Math.signum(ry)*Math.cos(vAngle)*velocity;
+			vy = Math.signum(rx)*Math.sin(vAngle)*velocity;
+		}
+		//		System.out.println("Pos: " + rx + "," + ry + " - Velocity: " + velocity); //+ vx + "," + vy);
+		this.addBodyMass(null);
 	}
 
 }

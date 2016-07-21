@@ -16,5 +16,9 @@ public class Planet extends Body {
 	public Planet(double dist, double mass, Color color){
 		super(dist, mass, color);
 	}
+	
+	public Planet(double semiMajor, double eccentricity, double radius, double longAscendNode, double argPeri, double mass, Color c){
+		super(semiMajor, eccentricity, radius, longAscendNode, argPeri, mass, c);
+	}
 
 }

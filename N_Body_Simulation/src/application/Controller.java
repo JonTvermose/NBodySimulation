@@ -1,6 +1,7 @@
 package application;
 
 import java.io.File;
+import java.net.URL;
 import java.util.ArrayList;
 
 import javafx.animation.AnimationTimer;
@@ -73,11 +74,9 @@ public class Controller {
 		translateY = canvas.getHeight()/2.0;
 		gc.translate(translateX, translateY);
 
-		// Load the GIF of the sun
-		File file = new File("sun_gif3.gif");
-		sun = new Image(file.toURI().toString());
-		File file2 = new File("giphy.gif");
-		black_hole = new Image(file2.toURI().toString());
+		// Load the GIFs of the sun and Black Hole
+		sun = new Image(Main.class.getResourceAsStream("/resources/sun_gif3.gif"));
+		black_hole = new Image(Main.class.getResourceAsStream("/resources/giphy.gif"));
 
 		// Load the sound files
 		soundLoader = new SoundLoader();
@@ -99,7 +98,7 @@ public class Controller {
 
 		// Setup the zoom level slider
 		zoom.setMax(5e18);
-		zoom.setMin(1e17);
+		zoom.setMin(1e11);
 		zoom.setValue(scale);
 		zoom.valueProperty().addListener(new ChangeListener<Number>() {
 			@Override
@@ -118,7 +117,10 @@ public class Controller {
 				double y1 = event.getY() - translateY;
 				Point2D p = transformToUniverse(new Point2D(x1, y1));
 				// Add body at mouseclick
-				sys.addBody(new BlackHole(p.getX(), p.getY(), BodySystem.solarmass, Color.BLACK));
+				Body b = new BlackHole(p.getX(), p.getY(), BodySystem.solarmass, Color.BLACK);
+				sys.addBody(b);
+				gc.drawImage(black_hole, x1-b.diameter/4, y1-b.diameter/4, b.diameter/2, b.diameter/2);	
+				System.out.println("Mouseclick at: " + event.getX() + "," + event.getY());
 			}
 		});
 
@@ -218,8 +220,10 @@ public class Controller {
 						p = transformToPixels(b.rx, b.ry);
 						if(b instanceof Star){	
 							gc.drawImage(sun, p.getX()-b.diameter/2, p.getY()-b.diameter/2, b.diameter, b.diameter);
+//							System.out.println("Transformed coord: " + p.getX() + "," + p.getY());
+//							System.out.println("Sun coord: " + b.rx + "," + b.ry);
 						} else if (b instanceof BlackHole) {
-							gc.drawImage(black_hole, p.getX()-b.diameter/2, p.getY()-b.diameter/2, b.diameter, b.diameter);				
+							gc.drawImage(black_hole, p.getX()-b.diameter/4, p.getY()-b.diameter/4, b.diameter/2, b.diameter/2);				
 						} else {
 							gc.setFill(b.color);    		
 							gc.fillOval(p.getX()-b.diameter/2, p.getY()-b.diameter/2, b.diameter, b.diameter);					

@@ -10,11 +10,11 @@ public class BodySystem {
 
 	public static final double solarmass=1.98892e30;
 	public static final double earthmass = solarmass/333000.0;
-	public static final double earthDistance = 1.47e17;
+	public static final double earthDistance = 1.496e17;
 
 	protected static final double G = 6.673e-11;   // gravitational constant
 	public static final double maxDeltaTime = 5e14; // Maximum delta time between calculations
-	public static final double minDeltaTime = 1e12; // Minimum delta time between calculations
+	public static final double minDeltaTime = 1e11; // Minimum delta time between calculations
 
 	private double deltaTime = 1e13;
 	private ArrayList<Body> bodies, gravityBodies;
@@ -43,12 +43,14 @@ public class BodySystem {
 		//		bodies = new ArrayList<Body>();
 
 		double px = earthDistance; // Earth orbit distance from sun
+		
+		Planet earth = new Planet(earthDistance, 0.0167086, 1.471e17, 174.9, 288.1, earthmass, Color.BLUE);
 
 		// Create the solar system (sun + planets)
-		Star sun = new Star(0, 0, 0, 0, solarmass, Color.DARKORANGE);
+		Star sun = new Star(0.0, 0.0, 0.0, 0.0, 0.0, solarmass, Color.DARKORANGE);
 		Planet mercury = new Planet(px*.38709, earthmass*.0553, Color.SILVER); // getBody(px*.38709, py*.38709, earthmass*0.0553, Color.SILVER);
 		Planet venus = new Planet(px*.7233, earthmass*.815, Color.CYAN); // getBody(px*.7233, py*.7233, earthmass*0.815, Color.CYAN);
-		Planet earth = new Planet(px, earthmass, Color.BLUE); // getBody(px, py, earthmass, Color.BLUE);
+//		Planet earth = new Planet(px, earthmass, Color.BLUE); // getBody(px, py, earthmass, Color.BLUE);
 		Planet mars = new Planet(px*1.524, earthmass*.107, Color.RED); //getBody(px*1.524, py*1.524, earthmass*0.107, Color.RED);
 		Planet jupiter = new Planet(px*5.203, earthmass*317.83, Color.YELLOW); //getBody(px*5.203, py*5.203, earthmass*317.83, Color.YELLOW);
 		Planet saturn = new Planet(px*9.537, earthmass*95.162, Color.BURLYWOOD); // getBody(px*9.537, py*9.537, earthmass*95.162, Color.BURLYWOOD);
@@ -185,9 +187,9 @@ public class BodySystem {
 				e.printStackTrace();
 			}
 		}
-		this.updates++;
-		this.avgTime += System.currentTimeMillis() - start;
-		System.out.println("Update time: " + (avgTime/updates) + " - OPTIMALTHREADCOUNT: " + OPTIMALTHREADCOUNT);
+//		this.updates++;
+//		this.avgTime += System.currentTimeMillis() - start;
+//		System.out.println("Update time: " + (avgTime/updates) + " - OPTIMALTHREADCOUNT: " + OPTIMALTHREADCOUNT);
 	}	
 
 	public synchronized void setDeltaTime(double dt){
@@ -204,7 +206,7 @@ public class BodySystem {
 		double y2 = b.ry;
 		double dist = Math.abs(Math.sqrt(Math.pow((x2-x1), 2)+Math.pow(y2-y1, 2)));
 		//		System.out.println("Dist: " + dist);
-		if(dist < 7e15){
+		if(dist < 7e10){
 			return true;
 		}
 		return false;

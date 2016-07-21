@@ -17,4 +17,8 @@ public class Star extends Body{
 		super(dist, mass, color);
 	}
 
+	public Star(double d, double e, double f, double g, double h, double mass, Color c) {
+		super(d, e, f, g, h, mass, c);
+	}
+
 }
