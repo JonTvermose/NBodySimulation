@@ -23,4 +23,8 @@ public class Asteroid extends Body{
 		} 
 	}
 
+	public Asteroid(double a, double e, double om, double w, double mass, Color white, Body center) {
+		super(a,e,om,w,mass,white,center);
+	}
+
 }

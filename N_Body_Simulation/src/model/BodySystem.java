@@ -2,6 +2,7 @@ package model;
 
 import java.util.ArrayList;
 
+import files.FileLoader;
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.paint.Color;
@@ -12,23 +13,26 @@ public class BodySystem {
 	public static final double earthmass = solarmass/333000.0;
 	public static final double earthDistance = 1.496e17;
 
-	protected static final double G = 6.673e-11;   // gravitational constant
+	public static final double G = 6.673e-11;   // gravitational constant
 	public static final double maxDeltaTime = 5e14; // Maximum delta time between calculations
 	public static final double minDeltaTime = 1e11; // Minimum delta time between calculations
+	public static final int MAX_OBJECTS = 710000; // Maximum number of objects in the system
 
+	private FileLoader fileLoader;
 	private double deltaTime = 1e13;
 	private ArrayList<Body> bodies, gravityBodies;
-	private ArrayList<Collision> collisions; // Bodyies that has been removed in the last update due to collision with another body
+	private ArrayList<Collision> collisions; // Bodies that has been removed in the last update due to collision with another body
 	private int frame;
-	
+
 	private final int CORES = Runtime.getRuntime().availableProcessors(); // Estimated number of cores (may include virtual cores)
 	private final int OPTIMALTHREADCOUNT = CORES*2; // Benchmarking shows better performance at more threads pr. core
-	
-	double avgTime = 0; // TODO debug
-	long updates = 0; // TODO debug
 
-	private ArrayList<ArrayList<Body>> bodiesList; // List containing the 4 list of non gravity bodies
+	private ArrayList<ArrayList<Body>> bodiesList; // List containing the 4 lists of non gravity bodies
 	private ArrayList<ArrayList<Collision>> collisionsList;
+	private ArrayList<Body> comets;
+	private int updates = 0;
+	private long avgTime = 0;
+	private boolean showComets;
 
 	public BodySystem(){
 		frame = 0;
@@ -38,33 +42,32 @@ public class BodySystem {
 
 	public void resetBodies(){		
 		bodiesList = new ArrayList<ArrayList<Body>>();
-
 		gravityBodies = new ArrayList<Body>();
-		//		bodies = new ArrayList<Body>();
-
-		double px = earthDistance; // Earth orbit distance from sun
-		
-		Planet earth = new Planet(earthDistance, 0.0167086, 1.471e17, 174.9, 288.1, earthmass, Color.BLUE);
 
 		// Create the solar system (sun + planets)
-		Star sun = new Star(0.0, 0.0, 0.0, 0.0, 0.0, solarmass, Color.DARKORANGE);
-		Planet mercury = new Planet(px*.38709, earthmass*.0553, Color.SILVER); // getBody(px*.38709, py*.38709, earthmass*0.0553, Color.SILVER);
-		Planet venus = new Planet(px*.7233, earthmass*.815, Color.CYAN); // getBody(px*.7233, py*.7233, earthmass*0.815, Color.CYAN);
-//		Planet earth = new Planet(px, earthmass, Color.BLUE); // getBody(px, py, earthmass, Color.BLUE);
-		Planet mars = new Planet(px*1.524, earthmass*.107, Color.RED); //getBody(px*1.524, py*1.524, earthmass*0.107, Color.RED);
-		Planet jupiter = new Planet(px*5.203, earthmass*317.83, Color.YELLOW); //getBody(px*5.203, py*5.203, earthmass*317.83, Color.YELLOW);
-		Planet saturn = new Planet(px*9.537, earthmass*95.162, Color.BURLYWOOD); // getBody(px*9.537, py*9.537, earthmass*95.162, Color.BURLYWOOD);
-		Planet uranus = new Planet(px*19.2, earthmass*14, Color.CYAN); 
-		Planet neptune = new Planet(px*30.1, earthmass*17, Color.BLUE);	
+		Star sun = new Star(0.0, 0.0, 0.0, 0.0, solarmass, Color.DARKORANGE, null);
+		Planet mercury = new Planet(earthDistance*.38709, 0.20563, 48.3, 29.1, earthmass*.0553, Color.SILVER, sun); // getBody(px*.38709, py*.38709, earthmass*0.0553, Color.SILVER);
+		Planet venus = new Planet(earthDistance*.7233, 0.006772, 76.68, 54.884, earthmass*.815, Color.CYAN, sun); // getBody(px*.7233, py*.7233, earthmass*0.815, Color.CYAN);
+		Planet earth = new Planet(earthDistance, 0.0167086, 174.9, 288.1, earthmass, Color.BLUE, sun);
+		Planet moon = new Planet(earthDistance*0.00384748, 0.0549, 0, 0, earthmass*0.0012, Color.SILVER, earth);
+		Planet mars = new Planet(earthDistance*1.524, 0.0934, 49.558, 286.502, earthmass*.107, Color.RED, sun); //getBody(px*1.524, py*1.524, earthmass*0.107, Color.RED);
+		Planet jupiter = new Planet(earthDistance*5.203, 0.048498, 100.464, 273.867, earthmass*317.83, Color.YELLOW, sun); //getBody(px*5.203, py*5.203, earthmass*317.83, Color.YELLOW);
+		Planet saturn = new Planet(earthDistance*9.537, 0.05555, 113.665, 339.392, earthmass*95.162, Color.BURLYWOOD, sun); // getBody(px*9.537, py*9.537, earthmass*95.162, Color.BURLYWOOD);
+		Planet uranus = new Planet(earthDistance*19.2, 0.046381, 74.006, 96.998857, earthmass*14, Color.CYAN, sun); 
+		Planet neptune = new Planet(earthDistance*30.1, 0.009456, 131.784, 276.336, earthmass*17, Color.BLUE, sun);	
 		gravityBodies.add(sun);
 		gravityBodies.add(mercury);
 		gravityBodies.add(venus);
 		gravityBodies.add(earth);
+		gravityBodies.add(moon);
 		gravityBodies.add(mars);
 		gravityBodies.add(jupiter);
 		gravityBodies.add(saturn);
 		gravityBodies.add(uranus);
 		gravityBodies.add(neptune);
+
+		fileLoader = new FileLoader(sun); // Load know comets and asteroids
+		comets = fileLoader.getCometList();
 	}
 
 	public Body getBody(double dist, double mass, Color c, String type){
@@ -93,8 +96,8 @@ public class BodySystem {
 	}
 
 	public void addRandomBodies(int n){
-		if(n > 250000){
-			n = 250000;
+		if(n > MAX_OBJECTS){
+			n = MAX_OBJECTS;
 		} else if (n < 0){
 			n = 0;
 		}	
@@ -111,6 +114,32 @@ public class BodySystem {
 			}
 			this.bodiesList.add(bodies);
 			this.collisionsList.add(collisions);
+		}
+		if(this.showComets){
+			bodiesList.add(comets);			
+		}
+	}
+
+
+	public void addKnownBodies(int n){
+		ArrayList<Asteroid> asteroids = fileLoader.getAsteroidList();
+		if(n > MAX_OBJECTS){
+			n = MAX_OBJECTS;
+		} else if (n < 0){
+			n = 0;
+		}	
+		for(int r = 0; r < OPTIMALTHREADCOUNT; r++){
+			bodies = new ArrayList<Body>();
+			collisions = new ArrayList<Collision>();
+
+			for (int i = 0; i < n/OPTIMALTHREADCOUNT; i++) {
+				bodies.add(asteroids.get((n/OPTIMALTHREADCOUNT)*r + i));
+			}
+			this.bodiesList.add(bodies);
+			this.collisionsList.add(collisions);
+		}
+		if(this.showComets){
+			bodiesList.add(comets);			
 		}
 	}
 
@@ -145,7 +174,7 @@ public class BodySystem {
 
 		// Assign data and work to workerthreads. They will update all non-gravity bodies in the system
 		Thread workers[] = new Thread[OPTIMALTHREADCOUNT];		
-		for(int i=0; i<OPTIMALTHREADCOUNT; i++){
+		for(int i=0; i< OPTIMALTHREADCOUNT; i++){
 			workers[i]= new Thread(new WorkerThread(bodiesList.get(i), gravityBodies, this.deltaTime, this.frame, i, this));
 			workers[i].start();
 		}
@@ -178,7 +207,38 @@ public class BodySystem {
 		for(Body b : gravityBodies){
 			b.update(deltaTime);
 		}
-		
+
+		if(showComets){
+			// Update the comets
+			for(int i = 0; i < comets.size(); i++){
+				comets.get(i).resetForce();
+				for (int j = 0; j < gravityBodies.size(); j++){
+					if(i!=j){
+						comets.get(i).addForce(gravityBodies.get(j));
+						// If two bodies collide then we merge them and keep the combined mass in a single item
+						if(collided(comets.get(i), gravityBodies.get(j))){
+							System.err.println("Comet collision detected!");
+							if(comets.get(i).mass < gravityBodies.get(j).mass){
+								gravityBodies.get(j).addBodyMass(comets.get(i));
+								collisions.add(new Collision(comets.get(i), frame));
+								comets.remove(i);
+								i--;
+							} else {
+								comets.get(i).addBodyMass(gravityBodies.get(j));
+								collisions.add(new Collision(gravityBodies.get(j), frame));
+								gravityBodies.remove(j);
+								j--;
+							}
+						}
+					}
+				}
+			}
+
+			for(Body b : comets){
+				b.update(deltaTime);
+			}
+		}
+
 		// Wait for each workerthread to finish
 		for(int i=0; i<OPTIMALTHREADCOUNT; i++){
 			try {
@@ -187,9 +247,9 @@ public class BodySystem {
 				e.printStackTrace();
 			}
 		}
-//		this.updates++;
-//		this.avgTime += System.currentTimeMillis() - start;
-//		System.out.println("Update time: " + (avgTime/updates) + " - OPTIMALTHREADCOUNT: " + OPTIMALTHREADCOUNT);
+		this.updates++;
+		this.avgTime += System.currentTimeMillis() - start;
+		System.out.println("Update time: " + (avgTime/updates) + " - OPTIMALTHREADCOUNT: " + OPTIMALTHREADCOUNT);
 	}	
 
 	public synchronized void setDeltaTime(double dt){
@@ -218,15 +278,15 @@ public class BodySystem {
 	 */
 	public ArrayList<Collision> getCollisions(){
 		ArrayList<Collision> out = new ArrayList<Collision>();
-//		final int framesToShow = 5;
-//		for(ArrayList<Collision> collisions : collisionsList){
-//			for(Collision c : collisions){
-//				if(c.frame > frame - framesToShow){
-//					out.add(c);
-//				}
-//			}
-//			collisions = out;
-//		}
+		//		final int framesToShow = 5;
+		//		for(ArrayList<Collision> collisions : collisionsList){
+		//			for(Collision c : collisions){
+		//				if(c.frame > frame - framesToShow){
+		//					out.add(c);
+		//				}
+		//			}
+		//			collisions = out;
+		//		}
 		return out;
 	}
 
@@ -247,6 +307,10 @@ public class BodySystem {
 
 	public ArrayList<Collision> getCollisionsList(int i) {
 		return collisionsList.get(i);
+	}
+	
+	public void setShowComets(boolean c){
+		this.showComets = c;
 	}
 
 }

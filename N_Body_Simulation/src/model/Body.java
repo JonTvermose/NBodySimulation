@@ -1,5 +1,7 @@
 package model;
 
+import java.awt.geom.Ellipse2D;
+
 import javafx.scene.paint.Color;
 
 public abstract class Body {
@@ -128,28 +130,83 @@ public abstract class Body {
 		double F = (BodySystem.G * a.mass * b.mass) / (dist*dist + EPS*EPS);
 		a.fx += F * dx / dist;
 		a.fy += F * dy / dist;
+//		if(mass < BodySystem.earthmass){
+//			Body c = new Asteroid(0, 0, Color.WHITE);
+//			System.out.println("Distance: " + this.distanceTo(c)/BodySystem.earthDistance);
+//		}
 	}
 
-	public Body(double semiMajor, double eccentricity, double radius, double longAscendNode, double argPeri, double mass, Color color){
+	public Body(double semiMajor, double eccentricity, double longAscendNode, double argPeri, double mass, Color color, Body sun){
 		this.mass = mass;
 		this.color = color;
-		if(semiMajor == 0.0 || radius == 0.0){
+		if(semiMajor == 0.0 || sun == null){
 			this.rx = 0.0;
 			this.ry = 0.0;
 			this.vx = 0.0;
 			this.vy = 0.0;
 		} else {			
 			double semiMinor = semiMajor * Math.sqrt(1-eccentricity*eccentricity);
-			double degrees = longAscendNode + argPeri;
-			rx = semiMajor * Math.cos(Math.toRadians(degrees));
-			ry = semiMinor * Math.sin(Math.toRadians(degrees));
-			double velocity = Math.sqrt((BodySystem.solarmass*BodySystem.G)*((2.0/radius)-(1.0/semiMajor)));
-			double vAngle = Math.PI/2-Math.atan(Math.abs(ry/rx));
-			vx = -1*Math.signum(ry)*Math.cos(vAngle)*velocity;
-			vy = Math.signum(rx)*Math.sin(vAngle)*velocity;
+			double focalDistance = Math.sqrt((semiMajor*semiMajor - semiMinor*semiMinor));
+			double degrees = Math.toRadians(longAscendNode + argPeri); // TODO
+			double placement = 0; // Math.random()*Math.PI*2; // random placement in orbit // TODO - does not work!
+			double rxTemp = semiMajor * Math.cos(placement) + focalDistance + sun.rx; // TODO - Substitute 0 with placement
+			double ryTemp = semiMinor * Math.sin(placement) + sun.ry; // TODO - Substitute 0 with placement
+			rx = rxTemp * Math.cos(degrees) - ryTemp * Math.sin(degrees); // Rotate
+			ry = rxTemp * Math.sin(degrees) + ryTemp * Math.cos(degrees); // Rotate
+			double radius = this.distanceTo(sun);
+			double velocity = Math.sqrt((sun.mass*BodySystem.G)*((2.0/radius)-(1.0/semiMajor)));
+//			double vAngle = Math.toDegrees(Math.PI/2-Math.atan(Math.abs(ry/rx)));
+//			double vAngleTemp = -((semiMinor*Math.cos(placement))/(semiMajor*Math.sin(placement)));
+//			System.out.println("vAngleTemp: " + vAngleTemp);
+//			vx = -1*Math.signum(ry)*Math.cos(Math.toRadians(vAngle))*velocity;
+//			vy = Math.signum(rx)*Math.sin(Math.toRadians(vAngle))*velocity;
+//			System.out.println("Velocity: " + velocity);
+//			System.out.println("Pos: " + rx + "," + ry + " - "+ vx + "," + vy);
+//			tangent(semiMajor, semiMinor, rx, ry, velocity);
+			double[] vRot = rotate(0,velocity,degrees);
+			vx = vRot[0] + sun.vx;
+			vy = vRot[1] + sun.vy;
 		}
-		//		System.out.println("Pos: " + rx + "," + ry + " - Velocity: " + velocity); //+ vx + "," + vy);
 		this.addBodyMass(null);
+	}
+	
+	public double[] rotate(double x, double y, double radians){
+		double out[] = new double[2];
+		out[0] = x * Math.cos(radians) - y * Math.sin(radians); 
+		out[1] = x * Math.sin(radians) + y * Math.cos(radians); 
+//		System.out.println("Rotated: " + out[0] + "," + out[1]);
+		return out;
+	}
+	
+	public double tangent(double semiMajor, double semiMinor, double x1, double y1, double v){
+		double degrees = 0.0;
+		double fx = -1 * (semiMajor*semiMajor) * ry;
+		double fy = (semiMinor * semiMinor) * rx;
+		double f = Math.sqrt(fx*fx + fy*fy);
+		double tx = fx/f;
+		double ty = fy/f;
+//		System.out.println("Vinkel: " + Math.toDegrees(Math.acos(tx)));
+//		System.out.println("Velocity Vector: (" + vx + "," + vy + ")");
+//		return Math.atan2(ty, tx);
+		double y;
+		double yFinal, xFinal;
+		if(y1 < 0.000000000001){
+			y = y1;
+			yFinal = v;
+			xFinal = 0;
+		} else {
+			y = -(semiMinor*semiMinor*x1)/(semiMajor*semiMajor*y1);			
+			double x = 1;
+			double len = Math.sqrt(x*x + y*y);
+			yFinal = (y/len) * v;
+			xFinal = (x/len) * v;
+		}
+		vx = -1*Math.signum(ry)*xFinal;
+		vy = Math.signum(rx)*yFinal;
+//		System.out.println("Pos2: " + rx + "," + ry + " - "+ vx + "," + vy);
+//		System.out.println("Slope: " + y);
+//		System.out.println("VLength: " + Math.sqrt(vx*vx+vy*vy));
+		return degrees;
 	}
 
 }

@@ -28,7 +28,10 @@ public class WorkerThread implements Runnable{
 					gravityBodies.get(j).addBodyMass(bodies.get(i));
 					collisions.add(new Collision(bodies.get(i), frame));
 					bodies.remove(i);
-					i--;						
+					i--;	
+					if(i < 0){
+						i=0;
+					}
 				}
 			}
 		}

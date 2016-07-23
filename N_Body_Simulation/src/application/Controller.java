@@ -4,6 +4,7 @@ import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
 
+import files.FileLoader;
 import javafx.animation.AnimationTimer;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -14,6 +15,7 @@ import javafx.geometry.Point2D;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
@@ -51,6 +53,12 @@ public class Controller {
 
 	@FXML
 	private Slider zoom; // Set the zoom level of the Canvas
+	
+    @FXML
+    private CheckBox showComets; // Show real Comets
+
+    @FXML
+    private CheckBox useRealAsteroids; // Use real Asteroids
 
 	private GraphicsContext gc;
 	private BodySystem sys;
@@ -62,9 +70,10 @@ public class Controller {
 
 	private double translateX, translateY; 
 	private double scale; // "Zoom" level of the canvas
+	private boolean realAsteroids, realComets;
 
 	@FXML
-	void initialize(){
+	void initialize(){	
 		this.gc = canvas.getGraphicsContext2D();
 		this.sys = new BodySystem();
 		scale = 1e18;
@@ -148,7 +157,11 @@ public class Controller {
 				n = 0;
 			}
 			sys.resetBodies();
-			sys.addRandomBodies(n);
+			if(realAsteroids){
+				sys.addKnownBodies(n);				
+			} else {
+				sys.addRandomBodies(n);				
+			}
 
 			// Change the music
 			MediaPlayerSupport.changeMusic(settingsSoundPlayer, gameSoundPlayer, 1000);
@@ -226,7 +239,8 @@ public class Controller {
 							gc.drawImage(black_hole, p.getX()-b.diameter/4, p.getY()-b.diameter/4, b.diameter/2, b.diameter/2);				
 						} else {
 							gc.setFill(b.color);    		
-							gc.fillOval(p.getX()-b.diameter/2, p.getY()-b.diameter/2, b.diameter, b.diameter);					
+							gc.fillOval(p.getX()-b.diameter/2, p.getY()-b.diameter/2, b.diameter, b.diameter);	
+//							gc.fillOval(p.getX(), p.getY(), 1, 1);
 						}
 					}
 					// Draw the collisions
@@ -275,6 +289,18 @@ public class Controller {
 		// Lock the reset field
 		reset.setDisable(true);
 	}
+	
+
+    @FXML
+    void toggleRealAsteroids(ActionEvent event) {
+    	realAsteroids = !realAsteroids;
+    }
+
+    @FXML
+    void toggleComets(ActionEvent event) {
+    	this.realComets = !realComets;
+    	sys.setShowComets(realComets);
+    }
 
 	public void setTranslate(double translateX, double translateY) {
 		//		this.translateX += translateX;

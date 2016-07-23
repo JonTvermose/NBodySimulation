@@ -17,6 +17,10 @@ public class Comet extends Body{
 		super(dist, mass, color);
 	}
 	
+	public Comet(double a, double e, double om, double w, double mass, Color white, Body center) {
+		super(a,e,om,w,mass,white,center);
+	}
+
 	@Override
 	public double circlev(double rx, double ry) {
 		double r2=Math.sqrt(rx*rx+ry*ry);
