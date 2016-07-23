@@ -59,6 +59,9 @@ public class Controller {
 
     @FXML
     private CheckBox useRealAsteroids; // Use real Asteroids
+    
+    @FXML
+    private CheckBox enableCollisions; // Use real Asteroids
 
 	private GraphicsContext gc;
 	private BodySystem sys;
@@ -70,7 +73,7 @@ public class Controller {
 
 	private double translateX, translateY; 
 	private double scale; // "Zoom" level of the canvas
-	private boolean realAsteroids, realComets;
+	private boolean realAsteroids, realComets, collisions;
 
 	@FXML
 	void initialize(){	
@@ -147,6 +150,11 @@ public class Controller {
 
 		// Lock the textfield
 		objects.setDisable(true);
+		
+		// Deactivate checkboxes
+		this.showComets.setDisable(true);
+		this.useRealAsteroids.setDisable(true);
+		this.enableCollisions.setDisable(true);
 
 		if(at==null){ // If no simulation has been started then:		
 			// Read input_field and create bodies
@@ -288,6 +296,11 @@ public class Controller {
 
 		// Lock the reset field
 		reset.setDisable(true);
+		
+		// Activate checkboxes
+		this.showComets.setDisable(false);
+		this.useRealAsteroids.setDisable(false);
+		this.enableCollisions.setDisable(false);
 	}
 	
 
@@ -300,6 +313,12 @@ public class Controller {
     void toggleComets(ActionEvent event) {
     	this.realComets = !realComets;
     	sys.setShowComets(realComets);
+    }
+    
+    @FXML
+    void toggleCollisions(ActionEvent event) {
+    	collisions = !collisions;
+    	sys.setCollisions(collisions);
     }
 
 	public void setTranslate(double translateX, double translateY) {

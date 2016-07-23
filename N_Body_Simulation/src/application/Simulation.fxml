@@ -32,6 +32,7 @@
                   <Label layoutX="741.0" layoutY="27.0" text="Zoom" />
                   <CheckBox fx:id="useRealAsteroids" layoutX="866.0" layoutY="56.0" mnemonicParsing="false" onAction="#toggleRealAsteroids" text="Use real Asteroids" />
                   <CheckBox fx:id="showComets" layoutX="1025.0" layoutY="56.0" mnemonicParsing="false" onAction="#toggleComets" text="Show Comets" />
+                  <CheckBox fx:id="enableCollisions" layoutX="1025.0" layoutY="27.0" mnemonicParsing="false" onAction="#toggleCollisions" text="Enable Collisions" />
                </children>
             </Pane>
          </children>

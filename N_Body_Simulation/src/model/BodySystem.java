@@ -30,9 +30,10 @@ public class BodySystem {
 	private ArrayList<ArrayList<Body>> bodiesList; // List containing the 4 lists of non gravity bodies
 	private ArrayList<ArrayList<Collision>> collisionsList;
 	private ArrayList<Body> comets;
-	private int updates = 0;
-	private long avgTime = 0;
-	private boolean showComets;
+	private boolean showComets, enableCollisions;
+
+	private int updates; // For performance-testing
+	private long avgTime; // For performance-testing
 
 	public BodySystem(){
 		frame = 0;
@@ -40,7 +41,9 @@ public class BodySystem {
 		resetBodies();
 	}
 
-	public void resetBodies(){		
+	public void resetBodies(){	
+		updates = 0;
+		avgTime = 0;
 		bodiesList = new ArrayList<ArrayList<Body>>();
 		gravityBodies = new ArrayList<Body>();
 
@@ -104,9 +107,8 @@ public class BodySystem {
 		for(int r = 0; r < OPTIMALTHREADCOUNT; r++){
 			bodies = new ArrayList<Body>();
 			collisions = new ArrayList<Collision>();
-
 			for (int i = 0; i < n/OPTIMALTHREADCOUNT; i++) {
-				double px = Math.abs(1e18*exp(-1.8)*(.5-Math.random())); // Exponential objects. More at the center
+//				double px = Math.abs(1e18*exp(-1.8)*(.5-Math.random())); // Exponential objects. More at the center
 				double dist = Math.abs(Math.random()*earthDistance*40); //1.5e18); // Linear objects
 				double mass = Math.abs(Math.random()*9.393e20*exp(1.8)); // Up to the mass of Ceres
 				Color color = Color.ANTIQUEWHITE;
@@ -131,7 +133,6 @@ public class BodySystem {
 		for(int r = 0; r < OPTIMALTHREADCOUNT; r++){
 			bodies = new ArrayList<Body>();
 			collisions = new ArrayList<Collision>();
-
 			for (int i = 0; i < n/OPTIMALTHREADCOUNT; i++) {
 				bodies.add(asteroids.get((n/OPTIMALTHREADCOUNT)*r + i));
 			}
@@ -175,7 +176,7 @@ public class BodySystem {
 		// Assign data and work to workerthreads. They will update all non-gravity bodies in the system
 		Thread workers[] = new Thread[OPTIMALTHREADCOUNT];		
 		for(int i=0; i< OPTIMALTHREADCOUNT; i++){
-			workers[i]= new Thread(new WorkerThread(bodiesList.get(i), gravityBodies, this.deltaTime, this.frame, i, this));
+			workers[i]= new Thread(new WorkerThread(bodiesList.get(i), gravityBodies, this.deltaTime, this.frame, i, this, enableCollisions));
 			workers[i].start();
 		}
 
@@ -247,6 +248,7 @@ public class BodySystem {
 				e.printStackTrace();
 			}
 		}
+		
 		this.updates++;
 		this.avgTime += System.currentTimeMillis() - start;
 		System.out.println("Update time: " + (avgTime/updates) + " - OPTIMALTHREADCOUNT: " + OPTIMALTHREADCOUNT);
@@ -260,13 +262,11 @@ public class BodySystem {
 
 	// Check if two bodies are visually collided
 	private boolean collided(Body a, Body b){
-		double x1 = a.rx;
-		double y1 = a.ry;
-		double x2 = b.rx;
-		double y2 = b.ry;
-		double dist = Math.abs(Math.sqrt(Math.pow((x2-x1), 2)+Math.pow(y2-y1, 2)));
-		//		System.out.println("Dist: " + dist);
-		if(dist < 7e10){
+		if(!enableCollisions){
+			return false;
+		}
+		double dist = Math.abs(Math.sqrt(Math.pow((b.rx-a.rx), 2)+Math.pow(b.ry-a.ry, 2)));
+		if(dist < 7e15){
 			return true;
 		}
 		return false;
@@ -311,6 +311,10 @@ public class BodySystem {
 	
 	public void setShowComets(boolean c){
 		this.showComets = c;
+	}
+
+	public void setCollisions(boolean c) {
+		this.enableCollisions = c;
 	}
 
 }

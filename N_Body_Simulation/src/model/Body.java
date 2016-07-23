@@ -1,7 +1,5 @@
 package model;
 
-import java.awt.geom.Ellipse2D;
-
 import javafx.scene.paint.Color;
 
 public abstract class Body {
@@ -122,14 +120,13 @@ public abstract class Body {
 	// compute the net force acting between the body a and b, and
 	// add to the net force acting on a
 	public void addForce(Body b) {
-		Body a = this;
 		double EPS = 3E4;      // softening parameter (just to avoid infinities)
-		double dx = b.rx - a.rx;
-		double dy = b.ry - a.ry;
+		double dx = b.rx - rx;
+		double dy = b.ry - ry;
 		double dist = Math.sqrt(dx*dx + dy*dy);
-		double F = (BodySystem.G * a.mass * b.mass) / (dist*dist + EPS*EPS);
-		a.fx += F * dx / dist;
-		a.fy += F * dy / dist;
+		double F = (BodySystem.G * mass * b.mass) / (dist*dist + EPS*EPS);
+		fx += F * dx / dist;
+		fy += F * dy / dist;
 //		if(mass < BodySystem.earthmass){
 //			Body c = new Asteroid(0, 0, Color.WHITE);
 //			System.out.println("Distance: " + this.distanceTo(c)/BodySystem.earthDistance);
