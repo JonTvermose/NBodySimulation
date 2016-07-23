@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 
 import javafx.scene.paint.Color;
@@ -15,13 +17,13 @@ import model.Comet;
 public class FileLoader {
 	
 	private boolean cometLoadDone, asteroidLoadDone;
-	private File cometsFile, asteroidsFile;
 	private ArrayList<Body> cometList;
 	private ArrayList<Asteroid> asteroidsList;
+	private InputStream cometStream, asteroidStream;
 	
 	public FileLoader(Body center){
-		cometsFile = new File("src/resources/comets.txt");
-		asteroidsFile = new File("src/resources/asteroids.txt");
+		cometStream = this.getClass().getClassLoader().getResourceAsStream("resources/comets.txt");
+		asteroidStream = this.getClass().getClassLoader().getResourceAsStream("resources/asteroids.txt");
 		cometList = new ArrayList<Body>();
 		asteroidsList = new ArrayList<Asteroid>();
 		this.loadComets(center);
@@ -31,10 +33,11 @@ public class FileLoader {
 	private void loadComets(Body center){
 		cometLoadDone = false;
 		new Thread(new Runnable(){
+
 			@Override
 			public void run() {
 				long start = System.currentTimeMillis();
-				try (BufferedReader br = new BufferedReader(new FileReader(cometsFile))) {
+				try (BufferedReader br = new BufferedReader(new InputStreamReader(cometStream))) {
 				    String line;
 				    
 				    while ((line = br.readLine()) != null) {
@@ -58,7 +61,7 @@ public class FileLoader {
 				    	   double mass = (0.6/1000) * volume;
 				    	   cometList.add(new Comet(a, e, om, w, mass, Color.WHITE, center));
 				       } else {
-				    	   System.err.println(cometsFile.toString() + " format exception.");
+				    	   System.err.println("Comets.txt format exception.");
 				       }
 				    }
 				    cometLoadDone = true;
@@ -76,7 +79,7 @@ public class FileLoader {
 			@Override
 			public void run() {
 				long start = System.currentTimeMillis();
-				try (BufferedReader br = new BufferedReader(new FileReader(asteroidsFile))) {
+				try (BufferedReader br = new BufferedReader(new InputStreamReader(asteroidStream))) {
 				    String line;
 				    while ((line = br.readLine()) != null) {
 				       String[] s = line.split(",");
@@ -99,7 +102,7 @@ public class FileLoader {
 				    	   double mass = (0.6/1000) * volume;
 				    	   asteroidsList.add(new Asteroid(a, e, om, w, mass, Color.WHITE, center));
 				       } else {
-				    	   System.err.println(asteroidsFile.toString() + " format exception.");
+				    	   System.err.println("Asteroids.txt format exception.");
 				       }
 				    }
 				    asteroidLoadDone = true;
